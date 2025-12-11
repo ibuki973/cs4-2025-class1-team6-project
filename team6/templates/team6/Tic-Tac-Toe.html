@@ -1,9 +1,120 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>トップページ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe</title> 
+
+    <link rel="stylesheet" href="{% static 'css/Tic-ac-Toe.css' %}">
+
+    <style>
+        /* 1. 画面全体を使って中央揃えにする設定 */
+        body {
+            margin: 0;
+            min-height: 100vh; /* 画面の高さいっぱいに広げる */
+            display: flex;
+            justify-content: center; /* 横方向の中央揃え */
+            align-items: center;     /* 縦方向の中央揃え */
+            font-family: sans-serif; /* フォントを見やすく */
+        }
+
+        /* ゲームコンテナの設定 */
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* margin-top: 30px;  ← 削除（bodyで中央寄せするため不要） */
+        }
+
+        /* メインエリアの設定（ここを追加） */
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        /* 3x3のゲームボード */
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px); 
+            grid-template-rows: repeat(3, 100px);    
+            border: 4px solid #333;
+            width: fit-content; /* ★前回の修正箇所（そのまま維持） */
+        }
+
+        /* 各マス（セル）のスタイル */
+        .cell {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 60px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #aaa;
+            background-color: #fff;
+            transition: background-color 0.1s;
+        }
+
+        .cell:not(.disabled):hover {
+            background-color: #f0f0f0;
+        }
+
+        /* テキストを中央揃えに */
+        #game-status {
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center; /* ★文字を中央揃え */
+        }
+
+        #reset-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        
+        .cell.winning-cell {
+            background-color: #d4edda; 
+            border: 3px solid #28a745;
+        }
+
+        #game-board.disabled .cell {
+            cursor: default;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
-    <h1>〇✕ゲーム</h1>
+    <div id="game-container">
+        <h1>三目並べ (Tic-Tac-Toe)</h1>
+
+        <main data-room-name="{{ room_name|default:'lobby' }}" data-game-type="tictactoe"> 
+            <div id="game-status">WebSocket接続を待機中...</div>
+
+            <div id="game-board">
+                {% for i in "012345678" %}
+                <div class="cell" data-position="{{ i }}"></div>
+                {% endfor %}
+            </div>
+
+            <button id="reset-button" style="display: none;">ゲームをリセット / 再戦</button>
+            <div style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background: #f9f9f9; text-align: left;">
+                <h3>接続デバッグログ:</h3>
+                <ul id="debug-list" style="list-style: none; padding: 0;">
+                    <li id="step-start">⏳ JS読み込み開始...</li>
+                </ul>
+            </div>
+            </main>
+    </div>
+
+    <script src="{% static 'js/game_socket.js' %}"></script>
+
+    <script src="{% static 'js/game1.js' %}"></script>
+
 </body>
+</html>

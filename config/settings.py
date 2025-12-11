@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'team6',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -116,3 +118,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# 1. ASGIアプリケーションの指定
+ASGI_APPLICATION = 'config.asgi.application'
+
+# 2. チャンネルレイヤーの設定 (開発環境ではインメモリチャネルレイヤーを使用)
+# 本番環境ではRedisなどを使用
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}

@@ -1,0 +1,11 @@
+/* Tic-Tac-Toe.html の <style> タグ内に追加 */
+.cell.winning-cell {
+    background-color: #d4edda; /* 薄い緑色など */
+    border: 3px solid #28a745; /* 濃い緑色の枠線 */
+}
+
+/* ゲーム終了時のボード無効化 (クリックを防止) */
+#game-board.disabled .cell {
+    cursor: default;
+    pointer-events: none; /* クリックイベントを完全に無効化 */
+}
