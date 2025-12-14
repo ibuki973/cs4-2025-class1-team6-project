@@ -6,4 +6,15 @@
 </head>
 <body>
     <h1>いろんなゲームが集まってるトップページ</h1>
+    <header>
+        {% if user.is_authenticated %}
+    こんにちは {{ user.username }}
+    <a href="{% url 'logout' %}">ログアウト</a>
+  {% else %}
+    <a href="{% url 'login' %}">ログイン</a>
+  {% endif %}
+</header>
+
+{% block content %}{% endblock %} 
+    </header>
 </body>
