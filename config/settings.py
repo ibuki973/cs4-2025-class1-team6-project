@@ -119,6 +119,12 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# プロジェクト全体の静的ファイルディレクトリを指定
+# BASE_DIRの直下にある 'static' フォルダを探すように設定します
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'static', 
+]
 # 1. ASGIアプリケーションの指定
 ASGI_APPLICATION = 'config.asgi.application'
 
