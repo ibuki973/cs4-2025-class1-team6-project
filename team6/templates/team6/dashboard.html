@@ -1,6 +1,72 @@
 {% extends 'team6/base.html' %}
+{% load static %}
+
+{% block title %}ダッシュボード - Team6 Games{% endblock %}
 
 {% block content %}
-  <h1>Dashboard</h1>
-  <p>Login Success!!</p>
+<div class="row mb-5">
+    <div class="col-md-12 text-center">
+        <h1 class="display-4 fw-bold text-primary mb-3">Game Dashboard</h1>
+        <p class="lead text-muted">プレイしたいゲームを選んでください</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 shadow-sm border-0 hover-card">
+            <div class="card-header bg-primary text-white text-center py-4">
+                <i class="fas fa-border-all fa-4x"></i>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="card-title fw-bold mt-3">三目並べ</h3>
+                <h6 class="card-subtitle mb-3 text-muted">Tic-Tac-Toe</h6>
+                <p class="card-text text-secondary">
+                    定番の○×ゲーム。<br>
+                    シンプルだけど奥が深い！<br>
+                    オンライン対戦対応。
+                </p>
+            </div>
+            <div class="card-footer bg-white border-top-0 text-center pb-4">
+                <a href="{% url 'tictactoe' %}" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm">
+                    <i class="fas fa-play me-2"></i>プレイする
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 shadow-sm border-0" style="opacity: 0.7;">
+            <div class="card-header bg-secondary text-white text-center py-4">
+                <i class="fas fa-gamepad fa-4x"></i>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="card-title fw-bold mt-3">Coming Soon</h3>
+                <h6 class="card-subtitle mb-3 text-muted">New Game</h6>
+                <p class="card-text text-secondary">
+                    新しいゲームを開発中です。<br>
+                    乞うご期待！<br>
+                    &nbsp;
+                </p>
+            </div>
+            <div class="card-footer bg-white border-top-0 text-center pb-4">
+                <button class="btn btn-secondary btn-lg px-5 rounded-pill disabled">
+                    <i class="fas fa-lock me-2"></i>準備中
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    /* カードにホバーしたときに少し浮き上がるエフェクト */
+    .hover-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
+    }
+</style>
 {% endblock %}

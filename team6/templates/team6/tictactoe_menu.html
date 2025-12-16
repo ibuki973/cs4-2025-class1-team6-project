@@ -1,0 +1,155 @@
+{% extends 'team6/base.html' %}
+
+{% block title %}三目並べ - ルールと選択{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <div class="text-center mb-5">
+                <h1 class="display-4 fw-bold text-primary">
+                    <i class="fas fa-border-all me-2"></i>三目並べ (Tic-Tac-Toe)
+                </h1>
+                <p class="lead text-muted">シンプルだけど奥深い、定番の頭脳戦。</p>
+            </div>
+
+            <div class="card shadow-sm mb-5 border-0">
+                <div class="card-header bg-white py-3">
+                    <h4 class="mb-0 fw-bold"><i class="fas fa-book-open me-2 text-warning"></i>ルール説明</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-7">
+                            <ol class="list-group list-group-numbered list-group-flush">
+                                <li class="list-group-item">
+                                    <strong>3×3のマス目</strong>を使います。
+                                </li>
+                                <li class="list-group-item">
+                                    2人のプレイヤーが交互に<strong>「○」</strong>と<strong>「×」</strong>を書き込みます。
+                                </li>
+                                <li class="list-group-item">
+                                    縦・横・斜めのいずれか一列に、自分のマークを<strong>3つ並べたプレイヤーの勝利</strong>です！
+                                </li>
+                                <li class="list-group-item">
+                                    マスが全て埋まっても勝負がつかない場合は<strong>引き分け</strong>になります。
+                                </li>
+                            </ol>
+                        </div>
+                        <div class="col-md-5 text-center">
+                            <div class="mini-board mx-auto">
+                                <div class="mini-cell">○</div><div class="mini-cell">×</div><div class="mini-cell"></div>
+                                <div class="mini-cell">○</div><div class="mini-cell">○</div><div class="mini-cell win">○</div>
+                                <div class="mini-cell">×</div><div class="mini-cell"></div><div class="mini-cell">×</div>
+                                <div class="win-line"></div>
+                            </div>
+                            <small class="text-muted mt-2 d-block">勝利パターンの例</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow border-0">
+                <div class="card-body p-5 text-center">
+                    <h3 class="mb-4 fw-bold">対戦モードを選択してください</h3>
+                    
+                    <div class="row g-4 justify-content-center">
+                        <div class="col-md-6">
+                            <div class="d-grid">
+                                <button onclick="startOffline()" class="btn btn-outline-success btn-lg py-4 border-2">
+                                    <div class="fs-1 mb-2"><i class="fas fa-laptop"></i></div>
+                                    <div class="fs-4 fw-bold">オフライン対戦</div>
+                                    <div class="small text-muted">1台のPCで交互にプレイ</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="d-grid">
+                                <button onclick="showOnlineModal()" class="btn btn-outline-primary btn-lg py-4 border-2">
+                                    <div class="fs-1 mb-2"><i class="fas fa-globe"></i></div>
+                                    <div class="fs-4 fw-bold">オンライン対戦</div>
+                                    <div class="small text-muted">離れた友達とプレイ</div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="onlineModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-door-open me-2"></i>ルームに入室</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>合言葉（ルーム名）を決めて、友達に教えてあげましょう。</p>
+                <input type="text" id="roomNameInput" class="form-control form-control-lg" placeholder="例: room1, secret123">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" onclick="startOnline()">開始する</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ミニボードのスタイル */
+    .mini-board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        width: 150px;
+        height: 150px;
+        background: #fff;
+        border: 2px solid #333;
+        position: relative;
+    }
+    .mini-cell {
+        border: 1px solid #ccc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.5rem;
+        color: #555;
+    }
+    .mini-cell.win {
+        background-color: #d4edda;
+        color: #28a745;
+    }
+</style>
+
+<script>
+    // オフライン対戦: ランダムなルームIDを生成して遷移
+    // (他の人と被らないようにランダムな文字列を付与します)
+    function startOffline() {
+        const randomId = 'local_' + Math.random().toString(36).substring(2, 9);
+        window.location.href = `/tictactoe/room/${randomId}/`;
+    }
+
+    // オンライン対戦: モーダルを表示
+    function showOnlineModal() {
+        const modal = new bootstrap.Modal(document.getElementById('onlineModal'));
+        modal.show();
+    }
+
+    // オンライン対戦: 入力されたルームへ遷移
+    function startOnline() {
+        const roomName = document.getElementById('roomNameInput').value.trim();
+        if (roomName) {
+            // 英数字のみにサニタイズ（念のため）
+            const safeRoomName = encodeURIComponent(roomName);
+            window.location.href = `/tictactoe/room/${safeRoomName}/`;
+        } else {
+            alert("ルーム名を入力してください");
+        }
+    }
+</script>
+{% endblock %}

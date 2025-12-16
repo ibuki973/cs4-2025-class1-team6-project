@@ -18,3 +18,9 @@ def tictactoe_game(request, room_name="lobby"):
 
 def dashboard(request):
     return render(request, 'team6/dashboard.html')
+
+def tictactoe_menu(request):
+    """
+    三目並べのメニュー画面（ルール説明とモード選択）を表示
+    """
+    return render(request, 'team6/tictactoe_menu.html')
