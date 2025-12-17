@@ -20,7 +20,6 @@ gameSocket.onmessage = function(e) {
         showStartAnimation(data.player_x, data.player_o);
     }
     else if (data.type === 'game_state') {
-        // 盤面更新時に勝利ラインの情報も渡す
         updateBoard(data.board, data.winning_line);
         updatePlayerNames(data.player_x, data.player_o);
         
@@ -29,19 +28,27 @@ gameSocket.onmessage = function(e) {
                 updateStatus("引き分け！");
             } else {
                 const winnerName = data.winner === 'X' ? data.player_x : data.player_o;
-                updateStatus(`勝者: ${winnerName} (${data.winner})`);
+                const displayMark = data.winner === 'X' ? '✖' : '〇';
+                const colorClass = data.winner === 'X' ? 'text-x' : 'text-o';
+                // 勝利時も色分けして表示
+                updateStatus(`勝者: <span class="${colorClass} fw-bold">${winnerName} (${displayMark})</span>`);
             }
             document.getElementById('reset-btn').style.display = 'inline-block';
-            // ゲーム終了時は盤面操作を無効化
             document.getElementById('online-board').style.pointerEvents = "none";
         } else {
-            const currentMark = data.current_player;
+            const currentMark = data.current_player; // 'X' or 'O'
             const currentName = currentMark === 'X' ? data.player_x : data.player_o;
             
             if (currentName) {
                 const isMyTurn = (currentName === myUsername);
-                let statusMsg = `現在のターン: ${currentMark} (${currentName})`;
-                if (isMyTurn) statusMsg += " (あなたの番です)";
+                
+                // 課題解決: ✖ (X) は青字 (text-x)、〇 (O) は赤字 (text-o)
+                const displayMark = currentMark === 'X' ? '✖' : '〇';
+                const colorClass = currentMark === 'X' ? 'text-x' : 'text-o';
+                
+                let statusMsg = `現在のターン: <span class="${colorClass} fw-bold">${displayMark} (${currentName})</span>`;
+                if (isMyTurn) statusMsg += " <span class='text-dark ms-2'>✨ あなたの番です</span>";
+                
                 updateStatus(statusMsg);
                 
                 const boardEl = document.getElementById('online-board');
@@ -71,12 +78,12 @@ function showStartAnimation(pX, pO) {
             <h1 class="anim-title">BATTLE START!</h1>
             <div class="player-vs">
                 <div class="vs-player text-primary">
-                    <span class="mark">X</span>
+                    <span class="mark">✖</span>
                     <span class="name">${pX}</span>
                 </div>
                 <div class="vs-icon">VS</div>
                 <div class="vs-player text-danger">
-                    <span class="mark">O</span>
+                    <span class="mark">〇</span>
                     <span class="name">${pO || '...'}</span>
                 </div>
             </div>
@@ -90,13 +97,17 @@ function showStartAnimation(pX, pO) {
     }, 2500);
 }
 
-// winningLine 引数を追加
 function updateBoard(boardData, winningLine = []) {
     const cells = document.querySelectorAll('.cell');
     cells.forEach((cell, index) => {
         const mark = boardData[index];
-        cell.textContent = mark === ' ' ? "" : mark;
-        // 基本クラスをリセット
+        
+        // 内部の 'X', 'O' を表示用の記号に変換
+        let displayMark = "";
+        if (mark === 'X') displayMark = "✖";
+        if (mark === 'O') displayMark = "〇";
+        
+        cell.textContent = displayMark;
         cell.className = 'cell'; 
         
         if (mark !== ' ') {
@@ -104,14 +115,12 @@ function updateBoard(boardData, winningLine = []) {
             cell.classList.add(mark === 'X' ? 'text-x' : 'text-o');
         }
 
-        // 勝利ラインに含まれるマスの場合は特別なクラスを追加
         if (winningLine && winningLine.includes(index)) {
             cell.classList.add('winning-cell');
         }
     });
 }
 
-// ... (残りの関数は変更なし) ...
 function updatePlayerNames(pX, pO) {
     const p1NameEl = document.getElementById('p1-name');
     const p2NameEl = document.getElementById('p2-name');
@@ -123,8 +132,9 @@ function updatePlayerNames(pX, pO) {
     }
 }
 
+// 課題解決: textContent ではなく innerHTML を使うように変更
 function updateStatus(msg) {
-    document.getElementById('game-status').textContent = msg;
+    document.getElementById('game-status').innerHTML = msg;
 }
 
 function sendMove(index) {
