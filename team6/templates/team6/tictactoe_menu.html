@@ -1,102 +1,180 @@
 {% extends 'team6/base.html' %}
-{% load static %}
 
-{% block title %}オンライン対戦中 - {{ room_name }}{% endblock %}
+{% block title %}三目並べ - モード選択{% endblock %}
 
 {% block content %}
-<div id="start-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; color:white; flex-direction:column; justify-content:center; align-items:center;">
-    <h1 id="overlay-text" style="font-size:4rem; font-weight:bold; transform:scale(0);"></h1>
-    <p id="overlay-subtext" style="font-size:1.5rem; margin-top:20px;"></p>
+
+<div class="container py-5">
+
+```
+<!-- タイトル & レート -->
+<div class="text-center mb-5">
+    <h1 class="display-4 fw-bold text-primary">
+        <i class="fas fa-border-all me-2"></i>三目並べ
+    </h1>
+    <p class="lead">現在のあなたのレート:
+        <strong class="text-danger fs-3">{{ user.profile.rating|default:"-" }}</strong>
+    </p>
 </div>
 
-<div class="container py-4" data-room-name="{{ room_name }}" data-game-type="tictactoe">
-    
-    <div class="row justify-content-center mb-4">
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="row text-center align-items-center">
-                        <div class="col-5">
-                            <h4 id="p1-name" class="fw-bold text-primary player-name-display">Waiting...</h4>
-                            <div class="fs-2">
-                                <span class="badge bg-light text-dark border">X</span>
-                            </div>
-                            <div class="mt-1 small text-muted" id="p1-rate">R: ---</div>
-                        </div>
-                        
-                        <div class="col-2">
-                            <span class="fs-4 text-muted">VS</span>
-                        </div>
-                        
-                        <div class="col-5">
-                            <h4 id="p2-name" class="fw-bold text-danger player-name-display">Waiting...</h4>
-                            <div class="fs-2">
-                                <span class="badge bg-light text-dark border">O</span>
-                            </div>
-                            <div class="mt-1 small text-muted" id="p2-rate">R: ---</div>
-                        </div>
-                    </div>
+<!-- モード選択 -->
+<div class="row g-4 justify-content-center">
+
+    <!-- ランダム対戦 -->
+    <div class="col-md-4">
+        <div class="card h-100 border-primary shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="mb-3 fs-1 text-primary"><i class="fas fa-random"></i></div>
+                <h3 class="card-title fw-bold">ランダム対戦</h3>
+                <p class="card-text text-muted">世界中の誰かと対戦します。<br>(レート変動あり)</p>
+                <button id="btn-random" class="btn btn-primary w-100 py-3 fw-bold" onclick="startRandomMatch()">
+                    対戦相手を探す
+                </button>
+                <div id="status-random" class="mt-2 text-warning fw-bold" style="display:none;">
+                    <span class="spinner-border spinner-border-sm"></span> 待機中...
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="text-center mb-4">
-        <h3 id="game-status" class="fw-bold text-primary">対戦相手を待っています...</h3>
-        <button id="reset-btn" class="btn btn-warning px-4 fw-bold shadow-sm" style="display:none;" onclick="sendReset()">
-            もう一度遊ぶ
-        </button>
-    </div>
-
-    <div class="d-flex justify-content-center">
-        <div id="online-board" style="transition: opacity 0.3s;">
-            {% for i in "012345678" %}
-            <div class="cell" data-index="{{ i }}" onclick="sendMove({{ i }})"></div>
-            {% endfor %}
+    <!-- ルーム対戦 -->
+    <div class="col-md-4">
+        <div class="card h-100 border-success shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="mb-3 fs-1 text-success"><i class="fas fa-key"></i></div>
+                <h3 class="card-title fw-bold">ルーム対戦</h3>
+                <p class="card-text text-muted">合言葉を決めて友達と対戦。<br>(レート変動あり)</p>
+                <button class="btn btn-success w-100 py-3 fw-bold" onclick="showRoomModal()">
+                    合言葉を入力
+                </button>
+            </div>
         </div>
     </div>
 
-    <input type="hidden" id="my-username" value="{{ user.username }}">
+    <!-- オフライン -->
+    <div class="col-md-4">
+        <div class="card h-100 border-secondary shadow-sm">
+            <div class="card-body text-center p-4">
+                <div class="mb-3 fs-1 text-secondary"><i class="fas fa-laptop"></i></div>
+                <h3 class="card-title fw-bold">オフライン練習</h3>
+                <p class="card-text text-muted">1台の端末で対戦します。<br>(レート変動なし)</p>
+                <button class="btn btn-outline-secondary w-100 py-3 fw-bold" onclick="startOffline()">
+                    練習する
+                </button>
+            </div>
+        </div>
+    </div>
 
-    <div class="text-center mt-5">
-        <a href="{% url 'tictactoe' %}" class="text-muted text-decoration-none">
-            <i class="fas fa-arrow-left me-1"></i> メニューに戻る
-        </a>
+</div>
+
+<!-- ルール説明 -->
+<div class="row justify-content-center mt-5">
+    <div class="col-lg-9">
+        <div class="card shadow-sm border-0 memo-style-card">
+            <div class="binder-holes"></div>
+            <div class="card-body p-4 pt-5">
+                <div class="row align-items-center">
+                    <div class="col-md-7">
+                        <h4 class="mb-4 fw-bold text-dark border-bottom border-2 border-warning d-inline-block">
+                            <i class="fas fa-book-open me-2"></i>ルール説明
+                        </h4>
+                        <ul class="memo-list">
+                            <li><strong>3×3のマス目</strong>を使います。</li>
+                            <li>2人で交互に<strong>「○」</strong>と<strong>「×」</strong>を書き込みます。</li>
+                            <li>一列（縦・横・斜め）に<strong>3つ並べた方の勝ち</strong>です。</li>
+                            <li>すべて埋まっても揃わなければ<strong>引き分け</strong>です。</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-5 text-center mt-4 mt-md-0">
+                        <div class="mini-board">
+                            <div class="mini-cell">○</div><div class="mini-cell">×</div><div class="mini-cell"></div>
+                            <div class="mini-cell">○</div><div class="mini-cell">○</div><div class="mini-cell win">○</div>
+                            <div class="mini-cell">×</div><div class="mini-cell"></div><div class="mini-cell">×</div>
+                        </div>
+                        <div class="mt-2 small text-muted fw-bold">勝利パターンの例</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+</div>
+
+<!-- ルームモーダル -->
+
+<div class="modal fade" id="roomModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-door-open me-2"></i>ルームに入室</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <input type="text" id="roomKey" class="form-control form-control-lg text-center" placeholder="例: room123">
+            </div>
+            <div class="modal-footer border-0 justify-content-center pb-4">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-success px-5 fw-bold" onclick="joinRoom()">入室</button>
+            </div>
+        </div>
     </div>
 </div>
 
 <style>
-    #online-board {
-        display: grid;
-        grid-template-columns: repeat(3, 100px);
-        grid-template-rows: repeat(3, 100px);
-        gap: 8px;
-        background-color: #333;
-        padding: 8px;
-        border-radius: 10px;
-    }
-    .cell {
-        background-color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 3.5rem;
-        font-weight: bold;
-        cursor: pointer;
-        user-select: none;
-        transition: all 0.2s ease;
-    }
-    .cell:hover { background-color: #f8f9fa; }
-    .cell.taken { cursor: default; }
-    .cell.win { background-color: #d4edda !important; color: #198754 !important; }
-    .text-x { color: #0d6efd; }
-    .text-o { color: #dc3545; }
-    .pop-in { animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-    @keyframes popIn {
-        0% { transform: scale(0); opacity: 0; }
-        100% { transform: scale(1); opacity: 1; }
-    }
+body { background-color: #f4f7f6 !important; }
+.memo-style-card { background-color: #fffde7; position: relative; border-radius: 8px; }
+.binder-holes { position:absolute; top:12px; left:0; width:100%; height:20px;
+    background-image: radial-gradient(circle, #f4f7f6 40%, transparent 45%);
+    background-size: 30px 30px; }
+.memo-list { list-style:none; padding-left:0; }
+.memo-list li { padding:12px 0 12px 40px; border-bottom:1px dashed #e0dcb0; position:relative; }
+.memo-list li::before { content:"\f058"; font-family:"Font Awesome 5 Free"; font-weight:900;
+    position:absolute; left:5px; color:#ffc107; }
+.mini-board { display:grid; grid-template-columns:repeat(3,45px); gap:3px; background:#666; padding:3px; border-radius:4px; margin:0 auto; }
+.mini-cell { background:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; }
+.mini-cell.win { background:#d1e7dd; color:#0f5132; }
 </style>
 
-<script src="{% static 'js/game_socket.js' %}"></script>
+<script>
+function startOffline() {
+    window.location.href = "{% url 'tictactoe_offline' %}";
+}
+
+function showRoomModal() {
+    new bootstrap.Modal(document.getElementById('roomModal')).show();
+}
+
+function joinRoom() {
+    const key = document.getElementById('roomKey').value.trim();
+    if (key) window.location.href = `/tictactoe/room/${encodeURIComponent(key)}/`;
+}
+
+let matchSocket = null;
+function startRandomMatch() {
+    const btn = document.getElementById('btn-random');
+    const status = document.getElementById('status-random');
+    btn.disabled = true;
+    btn.textContent = '検索中...';
+    status.style.display = 'block';
+
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    matchSocket = new WebSocket(protocol + '//' + location.host + '/ws/matchmaking/');
+
+    matchSocket.onmessage = e => {
+        const data = JSON.parse(e.data);
+        if (data.type === 'match_found') {
+            location.href = `/tictactoe/room/${data.room_name}/`;
+        }
+    };
+
+    matchSocket.onclose = () => {
+        btn.disabled = false;
+        btn.textContent = '対戦相手を探す';
+        status.style.display = 'none';
+    };
+}
+</script>
+
 {% endblock %}

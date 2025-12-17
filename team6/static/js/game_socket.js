@@ -1,137 +1,112 @@
-// team6/static/js/game_socket.js
+// HTMLの属性から情報を取得
+const mainEl = document.querySelector('[data-room-name]');
+const roomName = mainEl ? mainEl.getAttribute('data-room-name') : "test";
+const gameType = 'tictactoe';
 
-// data-room-name 属性を持つ要素を確実に探す
-const container = document.getElementById('game-container');
-const roomName = container ? container.getAttribute('data-room-name') : null;
+console.log(`接続先: ws://${window.location.host}/ws/${gameType}/${roomName}/`);
 
-if (!roomName) {
-    console.error("エラー: ルーム名が取得できません。URLを確認してください。");
-} else {
-    const gameType = 'tictactoe';
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socketUrl = `${protocol}//${window.location.host}/ws/${gameType}/${roomName}/`;
+const gameSocket = new WebSocket(
+    `ws://${window.location.host}/ws/${gameType}/${roomName}/`
+);
+
+// プレイヤー管理用
+let p1Name = null;
+let p2Name = null;
+
+gameSocket.onopen = function(e) {
+    updateStatus("サーバーに接続しました。対戦相手を待機中...");
+};
+
+gameSocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
     
-    console.log("Connecting to:", socketUrl);
-    const gameSocket = new WebSocket(socketUrl);
-
-    let myMark = null; 
-    const myUsername = document.getElementById('my-username').value;
-
-    gameSocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
-        if (data.type === 'player_joined') {
-            updatePlayerUI(data.username, data.rating);
-            determineMyMark();
-            checkAndShowStartEffect();
-        } else if (data.type === 'game_state') {
-            updateBoard(data.board);
-            determineMyMark();
-            if (data.game_over) {
-                handleGameOver(data);
+    // 1. ゲーム状態の受信 (盤面更新)
+    if (data.type === 'game_state') {
+        updateBoard(data.board);
+        
+        if (data.game_over) {
+            if (data.winner) {
+                updateStatus(`🏆 ${data.winner} の勝ち！`);
+                highlightWin(data.winning_line);
             } else {
-                updateTurnDisplay(data.current_player);
-                applyTurnLock(data.current_player);
+                updateStatus("引き分け！");
             }
-        }
-    };
-
-    // --- 必要な関数群 ---
-    window.sendMove = function(index) {
-        if (gameSocket.readyState === WebSocket.OPEN && myMark) {
-            gameSocket.send(JSON.stringify({'type': 'move', 'position': index, 'player_mark': myMark}));
-        }
-    };
-
-    window.sendReset = function() {
-        if (gameSocket.readyState === WebSocket.OPEN) {
-            gameSocket.send(JSON.stringify({'type': 'reset'}));
-        }
-    };
-
-    function determineMyMark() {
-        const p1 = document.getElementById('p1-name').textContent;
-        const p2 = document.getElementById('p2-name').textContent;
-        if (p1 === myUsername) myMark = 'X';
-        else if (p2 === myUsername) myMark = 'O';
-    }
-
-    function updatePlayerUI(username, rating) {
-        const p1 = document.getElementById('p1-name');
-        const p2 = document.getElementById('p2-name');
-        if (p1.textContent === username || p2.textContent === username) return;
-        if (p1.textContent === "Waiting...") {
-            p1.textContent = username;
-            document.getElementById('p1-rate').textContent = `R: ${rating}`;
-        } else if (p2.textContent === "Waiting...") {
-            p2.textContent = username;
-            document.getElementById('p2-rate').textContent = `R: ${rating}`;
-        }
-    }
-
-    function updateTurnDisplay(currentMark) {
-        const p1Name = document.getElementById('p1-name').textContent;
-        const p2Name = document.getElementById('p2-name').textContent;
-        const currentPlayerName = (currentMark === 'X') ? p1Name : p2Name;
-        document.getElementById('game-status').textContent = `現在のターン: ${currentPlayerName} (${currentMark})`;
-    }
-
-    function applyTurnLock(currentMark) {
-        const boardEl = document.getElementById('online-board');
-        if (myMark && currentMark === myMark) {
-            boardEl.style.opacity = "1";
-            boardEl.style.pointerEvents = "auto";
+            document.getElementById('reset-btn').style.display = 'inline-block';
         } else {
-            boardEl.style.opacity = "0.5";
-            boardEl.style.pointerEvents = "none";
+            // ターン表示
+            const turnMark = data.current_player; // 'X' or 'O'
+            updateStatus(`現在のターン: ${turnMark}`);
+            document.getElementById('reset-btn').style.display = 'none';
         }
     }
-
-    function updateBoard(boardData) {
-        const cells = document.querySelectorAll('.cell');
-        cells.forEach((cell, index) => {
-            const mark = boardData[index];
-            cell.textContent = (mark === ' ' || !mark) ? '' : mark;
-            cell.className = 'cell'; 
-            if (mark && mark !== ' ') {
-                cell.classList.add('taken', mark === 'X' ? 'text-x' : 'text-o');
-            }
-        });
+    // 2. プレイヤー参加通知 (名前表示の更新)
+    else if (data.type === 'player_joined') {
+        updatePlayerNames(data.username, data.rating);
     }
+    // 3. レート更新通知
+    else if (data.type === 'rating_update') {
+        // { "UserA": 1520, "UserB": 1480 } のようなデータが来る想定
+        // 簡易的にアラートで通知
+        alert("対戦終了！レートが更新されました。");
+    }
+};
 
-    function checkAndShowStartEffect() {
-        const p1 = document.getElementById('p1-name').textContent;
-        const p2 = document.getElementById('p2-name').textContent;
-        if (p1 !== "Waiting..." && p2 !== "Waiting..." && myMark) {
-            const overlay = document.getElementById('start-overlay');
-            if (overlay && overlay.style.display === 'none') showStartEffect();
+// 盤面描画
+function updateBoard(boardData) {
+    const cells = document.querySelectorAll('.cell');
+    cells.forEach((cell, index) => {
+        const mark = boardData[index];
+        cell.textContent = mark || "";
+        
+        // クラスのリセットと適用
+        cell.className = 'cell'; 
+        if (mark) {
+            cell.classList.add('taken');
+            cell.classList.add(mark === 'X' ? 'text-x' : 'text-o');
         }
-    }
+    });
+}
 
-    function showStartEffect() {
-        const overlay = document.getElementById('start-overlay');
-        const text = document.getElementById('overlay-text');
-        overlay.style.display = 'flex';
-        text.textContent = `You are ${myMark === 'X' ? '先行 (X)' : '後攻 (O)'}`;
-        text.style.color = myMark === 'X' ? "#0d6efd" : "#dc3545";
-        text.classList.add('pop-in');
-        setTimeout(() => {
-            overlay.style.opacity = '0';
-            overlay.style.transition = '0.8s';
-            setTimeout(() => { overlay.style.display = 'none'; }, 800);
-        }, 2200);
-    }
+// 名前表示の更新 (簡易ロジック: 空いている方に埋める)
+function updatePlayerNames(username, rating) {
+    const p1NameEl = document.getElementById('p1-name');
+    const p2NameEl = document.getElementById('p2-name');
+    
+    // 既に表示されている名前なら何もしない
+    if (p1NameEl.textContent === username || p2NameEl.textContent === username) return;
 
-    function handleGameOver(data) {
-        const statusEl = document.getElementById('game-status');
-        if (data.winner === 'draw') statusEl.textContent = "Draw! (引き分け)";
-        else {
-            const winnerName = (data.winner === 'X') ? document.getElementById('p1-name').textContent : document.getElementById('p2-name').textContent;
-            statusEl.innerHTML = `🏆 <span>${winnerName}</span> の勝ち！`;
-            if (data.winning_line) {
-                data.winning_line.forEach(idx => { document.querySelectorAll('.cell')[idx].classList.add('win'); });
-            }
-        }
-        document.getElementById('reset-btn').style.display = 'inline-block';
-        document.getElementById('online-board').style.pointerEvents = "none";
+    if (p1NameEl.textContent === "Waiting...") {
+        p1NameEl.textContent = username;
+        document.getElementById('p1-rate').textContent = `R: ${rating}`;
+    } else if (p2NameEl.textContent === "Waiting...") {
+        p2NameEl.textContent = username;
+        document.getElementById('p2-rate').textContent = `R: ${rating}`;
+        updateStatus("対戦開始！");
     }
+}
+
+function updateStatus(msg) {
+    document.getElementById('game-status').textContent = msg;
+}
+
+function highlightWin(line) {
+    if (!line) return;
+    line.forEach(idx => {
+        const cell = document.querySelector(`.cell[data-index="${idx}"]`);
+        if (cell) cell.classList.add('win');
+    });
+}
+
+// 送信アクション
+function sendMove(index) {
+    if (gameSocket.readyState === WebSocket.OPEN) {
+        gameSocket.send(JSON.stringify({
+            'type': 'move',
+            'position': index
+        }));
+    }
+}
+
+function sendReset() {
+    gameSocket.send(JSON.stringify({'type': 'reset'}));
 }

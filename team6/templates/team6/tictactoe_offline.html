@@ -18,11 +18,9 @@
                             </div>
                             <div class="mt-2 fw-bold" id="p1-score">0 勝</div>
                         </div>
-                        
                         <div class="col-2">
                             <span class="fs-4 text-muted">VS</span>
                         </div>
-                        
                         <div class="col-5">
                             <h4 id="p2-name" class="fw-bold text-danger">Player 2</h4>
                             <div class="fs-2">
@@ -37,7 +35,7 @@
     </div>
 
     <div class="text-center mb-4">
-        <h3 id="status-msg" class="fw-bold text-primary">準備中...</h3>
+        <h3 id="status-msg" class="fw-bold">準備中...</h3>
         <button id="next-btn" class="btn btn-warning px-4 fw-bold shadow-sm" style="display:none;" onclick="startNextGame()">
             次の対戦へ (先行交代) <i class="fas fa-arrow-right ms-2"></i>
         </button>
@@ -46,7 +44,7 @@
     <div class="d-flex justify-content-center">
         <div id="offline-board">
             {% for i in "012345678" %}
-            <div class="cell" data-index="{{ i }}" onclick="onCellClick(this)"></div>
+            <div class="off-cell" data-index="{{ i }}" onclick="onCellClick(this)"></div>
             {% endfor %}
         </div>
     </div>
@@ -74,7 +72,8 @@
                     <input type="text" id="input-p2" class="form-control" value="Bさん">
                 </div>
                 <p class="small text-muted">
-                    ※マーク(○/×)と先行・後攻はランダムに決定されます。
+                    ※マーク(○/×)と先行・後攻はランダムに決定されます。<br>
+                    ※次戦からマークは維持したまま、先行・後攻のみ交代します。
                 </p>
             </div>
             <div class="modal-footer">
@@ -94,7 +93,7 @@
         padding: 8px;
         border-radius: 10px;
     }
-    .cell {
+    .off-cell {
         background-color: white;
         display: flex;
         justify-content: center;
@@ -103,89 +102,107 @@
         font-weight: bold;
         cursor: pointer;
         user-select: none;
-        transition: background-color 0.2s;
     }
-    .cell:hover { background-color: #f0f0f0; }
-    .cell.taken { cursor: default; }
-    .cell.win { background-color: #d4edda; color: #198754; }
-    
-    /* マークの色分け */
-    .text-x { color: #0d6efd; }
-    .text-o { color: #dc3545; }
+    .off-cell:hover { background-color: #f0f0f0; }
+    .off-cell.taken { cursor: default; }
+    .off-cell.win { background-color: #d4edda; color: #198754; }
 </style>
 
 <script>
+    // 状態管理
     let p1 = { name: "", mark: "", score: 0 };
     let p2 = { name: "", mark: "", score: 0 };
     let board = Array(9).fill(null);
     let isGameActive = false;
-    let firstMover = "";
-    let currentPlayer = "";
+    
+    let firstMover = "";   // そのゲームの先行プレイヤー ('p1' or 'p2')
+    let currentPlayer = ""; // 現在ターンのプレイヤー ('p1' or 'p2')
 
+    // 起動時にモーダル表示
     document.addEventListener('DOMContentLoaded', () => {
         new bootstrap.Modal(document.getElementById('startModal')).show();
     });
 
+    // 1. ゲーム初期化 (最初の1回)
     function initGame() {
         p1.name = document.getElementById('input-p1').value || "Player 1";
         p2.name = document.getElementById('input-p2').value || "Player 2";
+        
+        // モーダル閉じる
         bootstrap.Modal.getInstance(document.getElementById('startModal')).hide();
 
-        if (Math.random() < 0.5) { p1.mark = "○"; p2.mark = "×"; } 
-        else { p1.mark = "×"; p2.mark = "○"; }
+        // ★要件: ○×を乱数で決定
+        if (Math.random() < 0.5) {
+            p1.mark = "○"; p2.mark = "×";
+        } else {
+            p1.mark = "×"; p2.mark = "○";
+        }
 
+        // ★要件: 先行後攻を乱数で決定
         firstMover = (Math.random() < 0.5) ? 'p1' : 'p2';
+
         updateScoreBoard();
         startRound();
     }
 
+    // 2. ラウンド開始
     function startRound() {
         board.fill(null);
         isGameActive = true;
-        currentPlayer = firstMover;
-        
-        document.querySelectorAll('.cell').forEach(c => {
+        currentPlayer = firstMover; // 先行プレイヤーから開始
+
+        // 盤面リセット
+        document.querySelectorAll('.off-cell').forEach(c => {
             c.textContent = "";
-            c.className = "cell"; // クラスリセット
+            c.className = "off-cell";
         });
         document.getElementById('next-btn').style.display = "none";
+        
         updateStatus();
     }
 
+    // 3. 次のゲーム (★要件: 先行後攻のみ交代、マークは維持)
     function startNextGame() {
         firstMover = (firstMover === 'p1') ? 'p2' : 'p1';
         startRound();
     }
 
+    // クリック処理
     function onCellClick(cell) {
         const idx = cell.dataset.index;
         if (!isGameActive || board[idx]) return;
 
+        // マーク書き込み
         const playerObj = (currentPlayer === 'p1') ? p1 : p2;
         board[idx] = playerObj.mark;
         cell.textContent = playerObj.mark;
         cell.classList.add('taken');
         
-        // Onlineと同じ色クラスを適用 (○はXの色、×はOの色などにマッピングするか、CSSを合わせる)
-        // ここでは簡単にCSSクラスを追加
-        if (playerObj.mark === '○' || playerObj.mark === 'O') cell.classList.add('text-o'); // 赤
-        else cell.classList.add('text-x'); // 青
+        // 色分け (○は青系、×は赤系など)
+        cell.style.color = (playerObj.mark === "○") ? "#0d6efd" : "#dc3545";
 
         if (checkWin(playerObj.mark)) {
             endGame(playerObj);
         } else if (board.every(v => v)) {
-            endGame(null);
+            endGame(null); // 引き分け
         } else {
+            // 交代
             currentPlayer = (currentPlayer === 'p1') ? 'p2' : 'p1';
             updateStatus();
         }
     }
 
+    // 勝敗判定
     function checkWin(mark) {
-        const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        const wins = [
+            [0,1,2],[3,4,5],[6,7,8],
+            [0,3,6],[1,4,7],[2,5,8],
+            [0,4,8],[2,4,6]
+        ];
         for (let pattern of wins) {
             const [a, b, c] = pattern;
             if (board[a] === mark && board[b] === mark && board[c] === mark) {
+                // ハイライト
                 pattern.forEach(i => document.querySelector(`[data-index="${i}"]`).classList.add('win'));
                 return true;
             }
@@ -193,23 +210,28 @@
         return false;
     }
 
+    // 終了処理
     function endGame(winner) {
         isGameActive = false;
         const msg = document.getElementById('status-msg');
+        
         if (winner) {
             msg.innerHTML = `🏆 <b>${winner.name}</b> の勝ち！`;
-            winner.score++;
+            winner.score++; // ★要件: 戦績カウント
         } else {
-            msg.textContent = "Draw! (引き分け)";
+            msg.textContent = "引き分け！";
         }
+        
         updateScoreBoard();
         document.getElementById('next-btn').style.display = "inline-block";
     }
 
+    // 表示更新系
     function updateScoreBoard() {
         document.getElementById('p1-name').textContent = p1.name;
         document.getElementById('p1-mark').textContent = p1.mark;
         document.getElementById('p1-score').textContent = p1.score + " 勝";
+
         document.getElementById('p2-name').textContent = p2.name;
         document.getElementById('p2-mark').textContent = p2.mark;
         document.getElementById('p2-score').textContent = p2.score + " 勝";
