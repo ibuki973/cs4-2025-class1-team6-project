@@ -1,7 +1,6 @@
-/* グローバルなリセットとフォント設定 */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f4f7f6;
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -9,32 +8,78 @@ body {
     margin: 0;
 }
 
-/* ログインコンテナ */
 .login-container {
     background-color: #ffffff;
-    padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    padding: 50px 40px;
+    border-radius: 20px;
+    /* 影を少しシャープにして浮遊感を出す */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); 
     width: 100%;
-    max-width: 400px;
+    max-width: 380px;
     text-align: center;
 }
 
+h2 {
+    font-size: 1.8rem;
+    color: #2d3436;
+    margin-bottom: 35px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
 
+/* ラベルのスタイル */
+.login-container p {
+    text-align: left;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #636e72;
+}
+
+/* 入力エリアのブラッシュアップ */
+input[type="text"],
+input[type="password"] {
+    display: block;
+    width: 100%;
+    /* 内側の余白を増やしてゆったりさせる */
+    padding: 14px 16px;
+    margin-top: 8px;
+    /* 背景を「白」に変更 */
+    background-color: #ffffff; 
+    /* 枠線を細く、薄く */
+    border: 1.5px solid #dfe6e9; 
+    border-radius: 10px;
+    box-sizing: border-box;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+/* 入力中のスタイル：ここが一番の違いです */
+input:focus {
+    outline: none;
+    border-color: #007bff;
+    background-color: #fff;
+    /* 柔らかい光が漏れるような演出 */
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1); 
+}
+
+/* ボタン：グラデーションで少しリッチに */
 button[type="submit"] {
-    background-color: #007bff; 
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
     color: white;
-    padding: 12px 25px;
+    padding: 15px;
     border: none;
-    border-radius: 6px;
+    border-radius: 10px;
     cursor: pointer;
-    font-size: 1.1em;
+    font-size: 1rem;
     font-weight: bold;
     width: 100%;
-    margin-top: 10px;
-    transition: background-color 0.3s, transform 0.1s;
+    margin-top: 20px;
+    box-shadow: 0 4px 12px rgba(0, 114, 255, 0.2);
+    transition: all 0.3s ease;
 }
 
 button[type="submit"]:hover {
-    background-color: #0056b3; 
+    transform: translateY(-1px);
+    box-shadow: 0 6px 15px rgba(0, 114, 255, 0.3);
 }

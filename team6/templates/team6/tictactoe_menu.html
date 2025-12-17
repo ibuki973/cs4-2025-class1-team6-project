@@ -5,6 +5,7 @@
 {% block content %}
 <div class="container py-5">
     <div class="text-center mb-5">
+<<<<<<< HEAD
         <h1 class="display-4 fw-bold text-primary">三目並べ</h1>
         <p class="lead">現在のあなたのレート: <strong class="text-danger fs-3">{{ user.profile.rating }}</strong></p>
     </div>
@@ -21,11 +22,49 @@
                     </button>
                     <div id="status-random" class="mt-2 text-warning fw-bold" style="display:none;">
                         <span class="spinner-border spinner-border-sm"></span> 待機中...
+=======
+        <h1 class="display-4 fw-bold text-primary">
+            <i class="fas fa-border-all me-2"></i>三目並べ (Tic-Tac-Toe)
+        </h1>
+        <p class="lead text-muted">シンプルだけど奥深い、定番の頭脳戦。</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            
+            <div class="card shadow-sm mb-5 border-0 memo-style-card">
+                <div class="binder-holes"></div>
+                
+                <div class="card-body p-4 pt-5">
+                    <div class="row align-items-center">
+                        <div class="col-md-7">
+                            <h4 class="mb-4 fw-bold text-dark border-bottom border-2 border-warning d-inline-block">
+                                <i class="fas fa-book-open me-2"></i>ルール説明
+                            </h4>
+                            <ul class="memo-list">
+                                <li><strong>3×3のマス目</strong>を使います。</li>
+                                <li>2人で交互に<strong>「○」</strong>と<strong>「×」</strong>を書き込みます。</li>
+                                <li>一列（縦・横・斜め）に<strong>3つ並べた方の勝ち</strong>！</li>
+                                <li>マスが埋まっても勝負がつかない場合は<strong>引き分け</strong>です。</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-5 text-center mt-4 mt-md-0">
+                            <div class="mini-board-wrapper">
+                                <div class="mini-board">
+                                    <div class="mini-cell">○</div><div class="mini-cell">×</div><div class="mini-cell"></div>
+                                    <div class="mini-cell">○</div><div class="mini-cell">○</div><div class="mini-cell win">○</div>
+                                    <div class="mini-cell">×</div><div class="mini-cell"></div><div class="mini-cell">×</div>
+                                </div>
+                                <div class="mt-2 small text-muted fw-bold">勝利パターンの例</div>
+                            </div>
+                        </div>
+>>>>>>> e42a25779d182154aab50a22e16b677462dd36c5
                     </div>
                 </div>
             </div>
         </div>
 
+<<<<<<< HEAD
         <div class="col-md-4">
             <div class="card h-100 border-success shadow-sm">
                 <div class="card-body text-center p-4">
@@ -34,6 +73,21 @@
                     <p class="card-text text-muted">合言葉を決めて友達と対戦。<br>(レート変動あり)</p>
                     <button class="btn btn-success w-100 py-3 fw-bold" onclick="showRoomModal()">
                         合言葉を入力
+=======
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-6">
+                    <button onclick="startOffline()" class="btn btn-mode btn-offline w-100 py-4 shadow-sm">
+                        <div class="fs-1 mb-2"><i class="fas fa-laptop text-success"></i></div>
+                        <div class="fs-4 fw-bold text-dark">オフライン対戦</div>
+                        <div class="small text-muted">1台のPCで交互にプレイ</div>
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <button onclick="showOnlineModal()" class="btn btn-mode btn-online w-100 py-4 shadow-sm">
+                        <div class="fs-1 mb-2"><i class="fas fa-globe text-primary"></i></div>
+                        <div class="fs-4 fw-bold text-dark">オンライン対戦</div>
+                        <div class="small text-muted">離れた友達とプレイ</div>
+>>>>>>> e42a25779d182154aab50a22e16b677462dd36c5
                     </button>
                 </div>
             </div>
@@ -56,6 +110,7 @@
 
 <div class="modal fade" id="roomModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
+<<<<<<< HEAD
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">ルームキー入力</h5>
@@ -66,17 +121,117 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-success" onclick="joinRoom()">入室</button>
+=======
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-door-open me-2"></i>ルームに入室</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <p class="mb-3">合言葉（ルーム名）を決めて、友達に教えてあげましょう。</p>
+                <input type="text" id="roomNameInput" class="form-control form-control-lg text-center" placeholder="例: room123">
+            </div>
+            <div class="modal-footer border-0 justify-content-center pb-4">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary px-5 fw-bold" onclick="startOnline()">開始する</button>
+>>>>>>> e42a25779d182154aab50a22e16b677462dd36c5
             </div>
         </div>
     </div>
 </div>
 
+<<<<<<< HEAD
 <script>
     // オフライン
+=======
+<style>
+    body { background-color: #f4f7f6 !important; }
+
+    /* 1. メモ用紙本体 */
+    .memo-style-card {
+        background-color: #fffde7 !important;
+        position: relative;
+        overflow: visible;
+        border-radius: 8px !important;
+        border: none !important;
+    }
+
+    /* 2. 上の穴デザイン（バインダー風） */
+    .binder-holes {
+        position: absolute;
+        top: 12px;
+        left: 0;
+        width: 100%;
+        height: 20px;
+        background-image: radial-gradient(circle, #f4f7f6 40%, transparent 45%);
+        background-size: 30px 30px;
+        background-position: center;
+    }
+
+    /* 3. 説明リスト */
+    .memo-list {
+        list-style: none;
+        padding-left: 0;
+    }
+    .memo-list li {
+        padding: 15px 0 15px 40px;
+        border-bottom: 1px dashed #e0dcb0;
+        position: relative;
+        line-height: 1.5;
+        color: #333;
+    }
+    .memo-list li::before {
+        content: "\f058";
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+        position: absolute;
+        left: 5px;
+        color: #ffc107;
+        font-size: 1.2rem;
+    }
+
+    /* 4. ミニボード */
+    .mini-board {
+        display: grid;
+        grid-template-columns: repeat(3, 45px);
+        grid-template-rows: repeat(3, 45px);
+        gap: 3px;
+        background: #666;
+        padding: 3px;
+        border-radius: 4px;
+        margin: 0 auto;
+        width: fit-content;
+    }
+    .mini-cell {
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    .mini-cell.win { background-color: #d1e7dd !important; color: #0f5132 !important; }
+
+    /* 5. ボタン装飾 */
+    .btn-mode {
+        background: white !important;
+        border: 2px solid #eee !important;
+        border-radius: 16px !important;
+        transition: all 0.3s ease;
+    }
+    .btn-mode:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
+    }
+</style>
+
+<script>
+>>>>>>> e42a25779d182154aab50a22e16b677462dd36c5
     function startOffline() {
         window.location.href = "{% url 'tictactoe_offline' %}";
     }
 
+<<<<<<< HEAD
     // ルーム対戦
     function showRoomModal() {
         new bootstrap.Modal(document.getElementById('roomModal')).show();
@@ -115,6 +270,21 @@
             btn.textContent = "対戦相手を探す";
             status.style.display = 'none';
         };
+=======
+    function showOnlineModal() {
+        const modalElement = document.getElementById('onlineModal');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
+
+    function startOnline() {
+        const roomName = document.getElementById('roomNameInput').value.trim();
+        if (roomName) {
+            window.location.href = `/tictactoe/room/${encodeURIComponent(roomName)}/`;
+        } else {
+            alert("ルーム名を入力してください");
+        }
+>>>>>>> e42a25779d182154aab50a22e16b677462dd36c5
     }
 </script>
 {% endblock %}
