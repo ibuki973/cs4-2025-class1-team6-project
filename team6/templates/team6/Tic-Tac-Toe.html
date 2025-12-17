@@ -46,7 +46,22 @@
 </div>
 
 <style>
-    /* 演出用オーバーレイのスタイル */
+    /* --- ここから追加・修正 --- */
+
+    /* 勝利ラインの強調スタイル */
+    .cell.winning-cell {
+        background-color: #28a745 !important; /* Bootstrapのsuccessカラー(緑) */
+        color: white !important; /* 文字色を白に */
+        transition: all 0.3s ease;
+    }
+    /* 勝利時はマークの色指定も白で上書き */
+    .cell.winning-cell.text-x, .cell.winning-cell.text-o {
+        color: white !important;
+    }
+
+    /* --- ここまで --- */
+
+    /* 既存のスタイル */
     #game-start-overlay {
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
@@ -59,35 +74,21 @@
     }
     .animation-container { text-align: center; }
     .anim-title {
-        font-size: 4rem;
-        font-weight: 900;
-        margin-bottom: 2rem;
+        font-size: 4rem; font-weight: 900; margin-bottom: 2rem;
         animation: dropIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     .player-vs {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 2rem;
+        display: flex; align-items: center; justify-content: center; gap: 2rem;
         animation: fadeIn 1s 0.3s both;
     }
     .vs-player { display: flex; flex-direction: column; }
     .vs-player .mark { font-size: 3rem; font-weight: bold; }
     .vs-player .name { font-size: 1.5rem; }
     .vs-icon { font-size: 2rem; color: #ffc107; font-weight: bold; }
-    
     .fade-out { opacity: 0; transition: opacity 0.8s ease; }
+    @keyframes dropIn { 0% { transform: translateY(-100px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 
-    @keyframes dropIn {
-        0% { transform: translateY(-100px); opacity: 0; }
-        100% { transform: translateY(0); opacity: 1; }
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: scale(0.9); }
-        to { opacity: 1; transform: scale(1); }
-    }
-
-    /* 盤面のスタイル（既存） */
     #online-board {
         display: grid;
         grid-template-columns: repeat(3, 100px);

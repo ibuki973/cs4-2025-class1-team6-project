@@ -188,3 +188,57 @@ class TicTacToe:
             if i < 2:
                 display += "-----------\n"
         return display
+class TicTacToe:
+    def __init__(self):
+        self.board = [' ' for _ in range(9)]
+        self.current_player = 'X'
+        self.game_over = False
+        self.winner = None
+        self.winning_line = []  # 追加: 勝利したラインのインデックスを保持
+
+    def make_move(self, position):
+        if self.game_over or self.board[position] != ' ':
+            return {'success': False, 'message': 'Invalid move'}
+
+        self.board[position] = self.current_player
+
+        # 勝敗判定
+        winner, winning_line = self.check_winner()
+        if winner:
+            self.game_over = True
+            self.winner = winner
+            self.winning_line = winning_line  # 勝利ラインを保存
+        elif ' ' not in self.board:
+            self.game_over = True
+            self.winner = 'draw'
+        else:
+            self.switch_player()
+
+        return {'success': True}
+
+    def check_winner(self):
+        # 勝利パターン (横、縦、斜めのインデックスの組み合わせ)
+        win_combinations = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],  # Rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Columns
+            [0, 4, 8], [2, 4, 6]              # Diagonals
+        ]
+
+        for combo in win_combinations:
+            # 3つのマスが同じマークで、かつ空白でない場合
+            if self.board[combo[0]] == self.board[combo[1]] == self.board[combo[2]] != ' ':
+                # 勝者のマークと、そのラインを返す
+                return self.board[combo[0]], combo
+        return None, []  # 勝者なし
+
+    def switch_player(self):
+        self.current_player = 'O' if self.current_player == 'X' else 'X'
+
+    def get_state(self):
+        return {
+            'board': self.board,
+            'current_player': self.current_player,
+            'game_over': self.game_over,
+            'winner': self.winner,
+            'winning_line': self.winning_line  # 状態に含める
+        }

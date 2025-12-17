@@ -34,7 +34,7 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             'type': 'match_found', 'room_name': event['room_name']
         }))
 
-# --- 2. ゲーム対戦用 (開始演出のトリガーを追加) ---
+# --- 2. ゲーム対戦用 ---
 class TicTacToeConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
@@ -52,18 +52,18 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
         room_data = await database_sync_to_async(cache.get)(room_key)
 
         if not room_data:
+            # 初期状態に winning_line を追加
             room_data = {
                 'board': [' ' for _ in range(9)],
                 'current_player': 'X',
                 'player_x': self.user.username,
                 'player_o': None,
                 'game_over': False,
-                'winner': None
+                'winner': None,
+                'winning_line': [] # 追加
             }
         elif room_data['player_o'] is None and room_data['player_x'] != self.user.username:
-            # 2人目が接続完了
             room_data['player_o'] = self.user.username
-            # 全員に「ゲーム開始演出」を指示
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -109,6 +109,8 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
         game.board = room_data['board']
         game.current_player = current_mark
         game.game_over = room_data['game_over']
+        # winning_lineは再構築時は不要だが、状態管理のために一応取得
+        game.winning_line = room_data.get('winning_line', [])
 
         position = int(data.get('position', -1))
         result = game.make_move(position)
@@ -119,7 +121,8 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
                 'board': new_state['board'],
                 'current_player': new_state['current_player'],
                 'game_over': new_state['game_over'],
-                'winner': new_state['winner']
+                'winner': new_state['winner'],
+                'winning_line': new_state['winning_line'] # 更新
             })
             await database_sync_to_async(cache.set)(room_key, room_data, 3600)
             await self.channel_layer.group_send(
@@ -131,11 +134,13 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
         room_key = f"game_state_{self.room_name}"
         room_data = await database_sync_to_async(cache.get)(room_key)
         if room_data:
+            # リセット時に winning_line もクリア
             room_data.update({
                 'board': [' ' for _ in range(9)],
                 'current_player': 'X',
                 'game_over': False,
-                'winner': None
+                'winner': None,
+                'winning_line': [] # クリア
             })
             await database_sync_to_async(cache.set)(room_key, room_data, 3600)
             await self.channel_layer.group_send(
@@ -150,7 +155,6 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
         }))
 
     async def game_start_event(self, event):
-        # クライアント側に開始演出の指示を出す
         await self.send(text_data=json.dumps({
             'type': 'game_start',
             'player_x': event['player_x'],

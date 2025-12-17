@@ -16,13 +16,12 @@ gameSocket.onopen = function(e) {
 gameSocket.onmessage = function(e) {
     const data = JSON.parse(e.data);
     
-    // 1. ゲーム開始演出のハンドリング
     if (data.type === 'game_start') {
         showStartAnimation(data.player_x, data.player_o);
     }
-    // 2. 通常の盤面更新
     else if (data.type === 'game_state') {
-        updateBoard(data.board);
+        // 盤面更新時に勝利ラインの情報も渡す
+        updateBoard(data.board, data.winning_line);
         updatePlayerNames(data.player_x, data.player_o);
         
         if (data.game_over) {
@@ -33,6 +32,8 @@ gameSocket.onmessage = function(e) {
                 updateStatus(`勝者: ${winnerName} (${data.winner})`);
             }
             document.getElementById('reset-btn').style.display = 'inline-block';
+            // ゲーム終了時は盤面操作を無効化
+            document.getElementById('online-board').style.pointerEvents = "none";
         } else {
             const currentMark = data.current_player;
             const currentName = currentMark === 'X' ? data.player_x : data.player_o;
@@ -60,7 +61,6 @@ gameSocket.onmessage = function(e) {
 };
 
 function showStartAnimation(pX, pO) {
-    // 既に演出が表示されている場合は削除
     const oldOverlay = document.getElementById('game-start-overlay');
     if (oldOverlay) oldOverlay.remove();
 
@@ -84,26 +84,34 @@ function showStartAnimation(pX, pO) {
     `;
     document.body.appendChild(overlay);
 
-    // 2.5秒後に自動で消える
     setTimeout(() => {
         overlay.classList.add('fade-out');
         setTimeout(() => overlay.remove(), 800);
     }, 2500);
 }
 
-function updateBoard(boardData) {
+// winningLine 引数を追加
+function updateBoard(boardData, winningLine = []) {
     const cells = document.querySelectorAll('.cell');
     cells.forEach((cell, index) => {
         const mark = boardData[index];
         cell.textContent = mark === ' ' ? "" : mark;
+        // 基本クラスをリセット
         cell.className = 'cell'; 
+        
         if (mark !== ' ') {
             cell.classList.add('taken');
             cell.classList.add(mark === 'X' ? 'text-x' : 'text-o');
         }
+
+        // 勝利ラインに含まれるマスの場合は特別なクラスを追加
+        if (winningLine && winningLine.includes(index)) {
+            cell.classList.add('winning-cell');
+        }
     });
 }
 
+// ... (残りの関数は変更なし) ...
 function updatePlayerNames(pX, pO) {
     const p1NameEl = document.getElementById('p1-name');
     const p2NameEl = document.getElementById('p2-name');
