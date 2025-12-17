@@ -4,6 +4,11 @@
 {% block title %}オンライン対戦中 - {{ room_name }}{% endblock %}
 
 {% block content %}
+<div id="start-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; color:white; flex-direction:column; justify-content:center; align-items:center;">
+    <h1 id="overlay-text" style="font-size:4rem; font-weight:bold; transform:scale(0);"></h1>
+    <p id="overlay-subtext" style="font-size:1.5rem; margin-top:20px;"></p>
+</div>
+
 <div class="container py-4" data-room-name="{{ room_name }}" data-game-type="tictactoe">
     
     <div class="row justify-content-center mb-4">
@@ -14,7 +19,7 @@
                         <div class="col-5">
                             <h4 id="p1-name" class="fw-bold text-primary">Waiting...</h4>
                             <div class="fs-2">
-                                <span class="badge bg-light text-dark border" id="p1-mark">X</span>
+                                <span class="badge bg-light text-dark border">X</span>
                             </div>
                             <div class="mt-1 small text-muted" id="p1-rate">R: ---</div>
                         </div>
@@ -26,7 +31,7 @@
                         <div class="col-5">
                             <h4 id="p2-name" class="fw-bold text-danger">Waiting...</h4>
                             <div class="fs-2">
-                                <span class="badge bg-light text-dark border" id="p2-mark">O</span>
+                                <span class="badge bg-light text-dark border">O</span>
                             </div>
                             <div class="mt-1 small text-muted" id="p2-rate">R: ---</div>
                         </div>
@@ -44,7 +49,7 @@
     </div>
 
     <div class="d-flex justify-content-center">
-        <div id="online-board">
+        <div id="online-board" style="transition: opacity 0.3s;">
             {% for i in "012345678" %}
             <div class="cell" data-index="{{ i }}" onclick="sendMove({{ i }})"></div>
             {% endfor %}
@@ -81,13 +86,19 @@
         user-select: none;
         transition: background-color 0.2s;
     }
-    .cell:hover { background-color: #f0f0f0; }
+    .cell:hover { background-color: #f8f9fa; }
     .cell.taken { cursor: default; }
-    .cell.win { background-color: #d4edda; color: #198754; }
+    .cell.win { background-color: #d4edda !important; color: #198754 !important; }
     
-    /* マークの色分け */
     .text-x { color: #0d6efd; }
     .text-o { color: #dc3545; }
+
+    /* 演出用アニメーション */
+    .pop-in { animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    @keyframes popIn {
+        0% { transform: scale(0); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
 </style>
 
 <script src="{% static 'js/game_socket.js' %}"></script>
