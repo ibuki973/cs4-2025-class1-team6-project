@@ -1,153 +1,120 @@
 {% extends 'team6/base.html' %}
 
-{% block title %}三目並べ - ルールと選択{% endblock %}
+{% block title %}三目並べ - モード選択{% endblock %}
 
 {% block content %}
 <div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            
-            <div class="text-center mb-5">
-                <h1 class="display-4 fw-bold text-primary">
-                    <i class="fas fa-border-all me-2"></i>三目並べ (Tic-Tac-Toe)
-                </h1>
-                <p class="lead text-muted">シンプルだけど奥深い、定番の頭脳戦。</p>
-            </div>
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold text-primary">三目並べ</h1>
+        <p class="lead">現在のあなたのレート: <strong class="text-danger fs-3">{{ user.profile.rating }}</strong></p>
+    </div>
 
-            <div class="card shadow-sm mb-5 border-0">
-                <div class="card-header bg-white py-3">
-                    <h4 class="mb-0 fw-bold"><i class="fas fa-book-open me-2 text-warning"></i>ルール説明</h4>
-                </div>
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-7">
-                            <ol class="list-group list-group-numbered list-group-flush">
-                                <li class="list-group-item">
-                                    <strong>3×3のマス目</strong>を使います。
-                                </li>
-                                <li class="list-group-item">
-                                    2人のプレイヤーが交互に<strong>「○」</strong>と<strong>「×」</strong>を書き込みます。
-                                </li>
-                                <li class="list-group-item">
-                                    縦・横・斜めのいずれか一列に、自分のマークを<strong>3つ並べたプレイヤーの勝利</strong>です！
-                                </li>
-                                <li class="list-group-item">
-                                    マスが全て埋まっても勝負がつかない場合は<strong>引き分け</strong>になります。
-                                </li>
-                            </ol>
-                        </div>
-                        <div class="col-md-5 text-center">
-                            <div class="mini-board mx-auto">
-                                <div class="mini-cell">○</div><div class="mini-cell">×</div><div class="mini-cell"></div>
-                                <div class="mini-cell">○</div><div class="mini-cell">○</div><div class="mini-cell win">○</div>
-                                <div class="mini-cell">×</div><div class="mini-cell"></div><div class="mini-cell">×</div>
-                                <div class="win-line"></div>
-                            </div>
-                            <small class="text-muted mt-2 d-block">勝利パターンの例</small>
-                        </div>
+    <div class="row g-4 justify-content-center">
+        <div class="col-md-4">
+            <div class="card h-100 border-primary shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3 fs-1 text-primary"><i class="fas fa-random"></i></div>
+                    <h3 class="card-title fw-bold">ランダム対戦</h3>
+                    <p class="card-text text-muted">世界中の誰かと対戦します。<br>(レート変動あり)</p>
+                    <button id="btn-random" class="btn btn-primary w-100 py-3 fw-bold" onclick="startRandomMatch()">
+                        対戦相手を探す
+                    </button>
+                    <div id="status-random" class="mt-2 text-warning fw-bold" style="display:none;">
+                        <span class="spinner-border spinner-border-sm"></span> 待機中...
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="card shadow border-0">
-                <div class="card-body p-5 text-center">
-                    <h3 class="mb-4 fw-bold">対戦モードを選択してください</h3>
-                    
-                    <div class="row g-4 justify-content-center">
-                        <div class="col-md-6">
-                            <div class="d-grid">
-                                <button onclick="startOffline()" class="btn btn-outline-success btn-lg py-4 border-2">
-                                    <div class="fs-1 mb-2"><i class="fas fa-laptop"></i></div>
-                                    <div class="fs-4 fw-bold">オフライン対戦</div>
-                                    <div class="small text-muted">1台のPCで交互にプレイ</div>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="d-grid">
-                                <button onclick="showOnlineModal()" class="btn btn-outline-primary btn-lg py-4 border-2">
-                                    <div class="fs-1 mb-2"><i class="fas fa-globe"></i></div>
-                                    <div class="fs-4 fw-bold">オンライン対戦</div>
-                                    <div class="small text-muted">離れた友達とプレイ</div>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-success shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3 fs-1 text-success"><i class="fas fa-key"></i></div>
+                    <h3 class="card-title fw-bold">ルーム対戦</h3>
+                    <p class="card-text text-muted">合言葉を決めて友達と対戦。<br>(レート変動あり)</p>
+                    <button class="btn btn-success w-100 py-3 fw-bold" onclick="showRoomModal()">
+                        合言葉を入力
+                    </button>
                 </div>
             </div>
+        </div>
 
+        <div class="col-md-4">
+            <div class="card h-100 border-secondary shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3 fs-1 text-secondary"><i class="fas fa-laptop"></i></div>
+                    <h3 class="card-title fw-bold">オフライン練習</h3>
+                    <p class="card-text text-muted">1台の端末で対戦します。<br>(レート変動なし)</p>
+                    <button class="btn btn-outline-secondary w-100 py-3 fw-bold" onclick="startOffline()">
+                        練習する
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="onlineModal" tabindex="-1">
+<div class="modal fade" id="roomModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-door-open me-2"></i>ルームに入室</h5>
+                <h5 class="modal-title">ルームキー入力</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p>合言葉（ルーム名）を決めて、友達に教えてあげましょう。</p>
-                <input type="text" id="roomNameInput" class="form-control form-control-lg" placeholder="例: room1, secret123">
+                <input type="text" id="roomKey" class="form-control form-control-lg" placeholder="例: room123">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                <button type="button" class="btn btn-primary" onclick="startOnline()">開始する</button>
+                <button type="button" class="btn btn-success" onclick="joinRoom()">入室</button>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    /* ミニボードのスタイル */
-    .mini-board {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        width: 150px;
-        height: 150px;
-        background: #fff;
-        border: 2px solid #333;
-        position: relative;
-    }
-    .mini-cell {
-        border: 1px solid #ccc;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 1.5rem;
-        color: #555;
-    }
-    .mini-cell.win {
-        background-color: #d4edda;
-        color: #28a745;
-    }
-</style>
-
 <script>
-    // ★修正箇所：オフライン対戦ボタンの遷移先を変更
+    // オフライン
     function startOffline() {
-        // DjangoのURLタグを使って、手順1で作った 'offline/' へ遷移させる
         window.location.href = "{% url 'tictactoe_offline' %}";
     }
 
-    // オンライン対戦の処理（そのまま）
-    function showOnlineModal() {
-        const modal = new bootstrap.Modal(document.getElementById('onlineModal'));
-        modal.show();
+    // ルーム対戦
+    function showRoomModal() {
+        new bootstrap.Modal(document.getElementById('roomModal')).show();
+    }
+    function joinRoom() {
+        const key = document.getElementById('roomKey').value.trim();
+        if(key) window.location.href = `/tictactoe/room/${key}/`;
     }
 
-    function startOnline() {
-        const roomName = document.getElementById('roomNameInput').value.trim();
-        if (roomName) {
-            const safeRoomName = encodeURIComponent(roomName);
-            // オンラインは 'room/〇〇/' へ遷移
-            window.location.href = `/tictactoe/room/${safeRoomName}/`;
-        } else {
-            alert("ルーム名を入力してください");
-        }
+    // ★ランダムマッチング処理
+    let matchSocket = null;
+
+    function startRandomMatch() {
+        const btn = document.getElementById('btn-random');
+        const status = document.getElementById('status-random');
+        
+        // UI更新
+        btn.disabled = true;
+        btn.textContent = "検索中...";
+        status.style.display = 'block';
+
+        // WebSocket接続
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        matchSocket = new WebSocket(protocol + '//' + window.location.host + '/ws/matchmaking/');
+
+        matchSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'match_found') {
+                // マッチング成功！指定された部屋へ移動
+                window.location.href = `/tictactoe/room/${data.room_name}/`;
+            }
+        };
+
+        matchSocket.onclose = function(e) {
+            btn.disabled = false;
+            btn.textContent = "対戦相手を探す";
+            status.style.display = 'none';
+        };
     }
 </script>
 {% endblock %}

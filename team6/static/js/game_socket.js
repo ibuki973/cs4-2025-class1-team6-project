@@ -1,81 +1,112 @@
-// team6/static/js/game_socket.js
+// HTMLの属性から情報を取得
+const mainEl = document.querySelector('[data-room-name]');
+const roomName = mainEl ? mainEl.getAttribute('data-room-name') : "test";
+const gameType = 'tictactoe';
 
-// ★デバッグ表示用関数
-function addDebugStep(step, message, color="black") {
-    const list = document.getElementById('debug-list');
-    if (!list) return; // 要素がない場合は無視
-    const li = document.createElement('li');
-    li.innerHTML = `<strong>[Step ${step}]</strong> ${message}`;
-    li.style.color = color;
-    list.appendChild(li);
-    console.log(`[Step ${step}] ${message}`);
-}
-
-// ---------------------------------------------------------
-// ★ここが汎用化のポイント
-// ---------------------------------------------------------
-const mainElement = document.querySelector('[data-room-name]');
-const roomName = mainElement.getAttribute('data-room-name');
-// HTMLに data-game-type があればそれを使い、なければ 'tictactoe' をデフォルトにする
-const gameType = mainElement.getAttribute('data-game-type') || 'tictactoe';
-
-addDebugStep("Init", `${gameType} 用の game_socket.js 読み込み完了`);
-
-// 1. WebSocket接続の確立
-// URLの一部を gameType 変数に置き換え、どのゲームのURLにも接続できるようにする
-addDebugStep("Pre-9", `ws://${window.location.host}/ws/${gameType}/${roomName}/ へ接続を試みます...`);
+console.log(`接続先: ws://${window.location.host}/ws/${gameType}/${roomName}/`);
 
 const gameSocket = new WebSocket(
     `ws://${window.location.host}/ws/${gameType}/${roomName}/`
 );
 
-// ---------------------------------------------------------
-// 以下は以前と同じイベントハンドラ
-// ---------------------------------------------------------
+// プレイヤー管理用
+let p1Name = null;
+let p2Name = null;
 
-// ★Step 13: 接続確立（onopen）
 gameSocket.onopen = function(e) {
-    addDebugStep(13, "クライアント: ソケット接続が確立しました (onopen)", "green");
-    const statusDiv = document.getElementById('game-status');
-    if (statusDiv) {
-        statusDiv.textContent = "サーバーと接続されました！";
-    }
+    updateStatus("サーバーに接続しました。対戦相手を待機中...");
 };
 
 gameSocket.onmessage = function(e) {
     const data = JSON.parse(e.data);
     
-    // ★Step 12の通知受信（サーバーから来たデバッグメッセージ）
-    if (data.type === 'debug_connection_step') {
-        addDebugStep(data.step, `サーバーからの応答: ${data.message}`, "blue");
-        return;
+    // 1. ゲーム状態の受信 (盤面更新)
+    if (data.type === 'game_state') {
+        updateBoard(data.board);
+        
+        if (data.game_over) {
+            if (data.winner) {
+                updateStatus(`🏆 ${data.winner} の勝ち！`);
+                highlightWin(data.winning_line);
+            } else {
+                updateStatus("引き分け！");
+            }
+            document.getElementById('reset-btn').style.display = 'inline-block';
+        } else {
+            // ターン表示
+            const turnMark = data.current_player; // 'X' or 'O'
+            updateStatus(`現在のターン: ${turnMark}`);
+            document.getElementById('reset-btn').style.display = 'none';
+        }
     }
-
-    // ★Step 14: データ受信と画面更新
-    addDebugStep(14, `データ受信: type=${data.type}`, "green");
-
-    if (typeof handleGameMessage === 'function') {
-        handleGameMessage(data.type || 'game_state', data); 
-    } else {
-        console.error("handleGameMessage関数が定義されていません。各ゲームのjsファイルを確認してください。");
+    // 2. プレイヤー参加通知 (名前表示の更新)
+    else if (data.type === 'player_joined') {
+        updatePlayerNames(data.username, data.rating);
+    }
+    // 3. レート更新通知
+    else if (data.type === 'rating_update') {
+        // { "UserA": 1520, "UserB": 1480 } のようなデータが来る想定
+        // 簡易的にアラートで通知
+        alert("対戦終了！レートが更新されました。");
     }
 };
 
-gameSocket.onclose = function(e) {
-    addDebugStep("Error", "ソケットが切断されました", "red");
-    console.warn('Game socket closed unexpectedly');
-};
+// 盤面描画
+function updateBoard(boardData) {
+    const cells = document.querySelectorAll('.cell');
+    cells.forEach((cell, index) => {
+        const mark = boardData[index];
+        cell.textContent = mark || "";
+        
+        // クラスのリセットと適用
+        cell.className = 'cell'; 
+        if (mark) {
+            cell.classList.add('taken');
+            cell.classList.add(mark === 'X' ? 'text-x' : 'text-o');
+        }
+    });
+}
 
-gameSocket.onerror = function(e) {
-    addDebugStep("Error", "接続エラーが発生しました。コンソールを確認してください", "red");
-    console.error('Game socket error:', e);
-};
+// 名前表示の更新 (簡易ロジック: 空いている方に埋める)
+function updatePlayerNames(username, rating) {
+    const p1NameEl = document.getElementById('p1-name');
+    const p2NameEl = document.getElementById('p2-name');
+    
+    // 既に表示されている名前なら何もしない
+    if (p1NameEl.textContent === username || p2NameEl.textContent === username) return;
 
-// サーバーへの送信ヘルパー関数
-function sendGameMessage(message) {
+    if (p1NameEl.textContent === "Waiting...") {
+        p1NameEl.textContent = username;
+        document.getElementById('p1-rate').textContent = `R: ${rating}`;
+    } else if (p2NameEl.textContent === "Waiting...") {
+        p2NameEl.textContent = username;
+        document.getElementById('p2-rate').textContent = `R: ${rating}`;
+        updateStatus("対戦開始！");
+    }
+}
+
+function updateStatus(msg) {
+    document.getElementById('game-status').textContent = msg;
+}
+
+function highlightWin(line) {
+    if (!line) return;
+    line.forEach(idx => {
+        const cell = document.querySelector(`.cell[data-index="${idx}"]`);
+        if (cell) cell.classList.add('win');
+    });
+}
+
+// 送信アクション
+function sendMove(index) {
     if (gameSocket.readyState === WebSocket.OPEN) {
-        gameSocket.send(JSON.stringify(message));
-    } else {
-        console.warn("WebSocketは開いていません。");
+        gameSocket.send(JSON.stringify({
+            'type': 'move',
+            'position': index
+        }));
     }
+}
+
+function sendReset() {
+    gameSocket.send(JSON.stringify({'type': 'reset'}));
 }
