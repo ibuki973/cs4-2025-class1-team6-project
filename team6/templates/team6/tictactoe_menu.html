@@ -127,25 +127,23 @@
 </style>
 
 <script>
-    // オフライン対戦: ランダムなルームIDを生成して遷移
-    // (他の人と被らないようにランダムな文字列を付与します)
+    // ★修正箇所：オフライン対戦ボタンの遷移先を変更
     function startOffline() {
-        const randomId = 'local_' + Math.random().toString(36).substring(2, 9);
-        window.location.href = `/tictactoe/room/${randomId}/`;
+        // DjangoのURLタグを使って、手順1で作った 'offline/' へ遷移させる
+        window.location.href = "{% url 'tictactoe_offline' %}";
     }
 
-    // オンライン対戦: モーダルを表示
+    // オンライン対戦の処理（そのまま）
     function showOnlineModal() {
         const modal = new bootstrap.Modal(document.getElementById('onlineModal'));
         modal.show();
     }
 
-    // オンライン対戦: 入力されたルームへ遷移
     function startOnline() {
         const roomName = document.getElementById('roomNameInput').value.trim();
         if (roomName) {
-            // 英数字のみにサニタイズ（念のため）
             const safeRoomName = encodeURIComponent(roomName);
+            // オンラインは 'room/〇〇/' へ遷移
             window.location.href = `/tictactoe/room/${safeRoomName}/`;
         } else {
             alert("ルーム名を入力してください");
