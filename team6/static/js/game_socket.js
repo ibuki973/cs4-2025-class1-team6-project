@@ -16,30 +16,33 @@ gameSocket.onopen = function(e) {
 gameSocket.onmessage = function(e) {
     const data = JSON.parse(e.data);
     
-    if (data.type === 'game_state') {
+    // 1. ゲーム開始演出のハンドリング
+    if (data.type === 'game_start') {
+        showStartAnimation(data.player_x, data.player_o);
+    }
+    // 2. 通常の盤面更新
+    else if (data.type === 'game_state') {
         updateBoard(data.board);
         updatePlayerNames(data.player_x, data.player_o);
         
         if (data.game_over) {
             if (data.winner === 'draw') {
-                updateStatus("🔥 引き分け！");
+                updateStatus("引き分け！");
             } else {
                 const winnerName = data.winner === 'X' ? data.player_x : data.player_o;
-                updateStatus(`🏆 ${winnerName} (${data.winner}) の勝利！`);
+                updateStatus(`勝者: ${winnerName} (${data.winner})`);
             }
             document.getElementById('reset-btn').style.display = 'inline-block';
         } else {
-            // --- 課題1&2: ターン表示と操作制限 ---
             const currentMark = data.current_player;
             const currentName = currentMark === 'X' ? data.player_x : data.player_o;
             
             if (currentName) {
                 const isMyTurn = (currentName === myUsername);
                 let statusMsg = `現在のターン: ${currentMark} (${currentName})`;
-                if (isMyTurn) statusMsg += " ✨ あなたの番です！";
+                if (isMyTurn) statusMsg += " (あなたの番です)";
                 updateStatus(statusMsg);
                 
-                // 自分のターンでない時は盤面のクリックを無効化し、少し透明にする
                 const boardEl = document.getElementById('online-board');
                 if (isMyTurn) {
                     boardEl.style.opacity = "1.0";
@@ -55,6 +58,38 @@ gameSocket.onmessage = function(e) {
         }
     }
 };
+
+function showStartAnimation(pX, pO) {
+    // 既に演出が表示されている場合は削除
+    const oldOverlay = document.getElementById('game-start-overlay');
+    if (oldOverlay) oldOverlay.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'game-start-overlay';
+    overlay.innerHTML = `
+        <div class="animation-container">
+            <h1 class="anim-title">BATTLE START!</h1>
+            <div class="player-vs">
+                <div class="vs-player text-primary">
+                    <span class="mark">X</span>
+                    <span class="name">${pX}</span>
+                </div>
+                <div class="vs-icon">VS</div>
+                <div class="vs-player text-danger">
+                    <span class="mark">O</span>
+                    <span class="name">${pO || '...'}</span>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // 2.5秒後に自動で消える
+    setTimeout(() => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => overlay.remove(), 800);
+    }, 2500);
+}
 
 function updateBoard(boardData) {
     const cells = document.querySelectorAll('.cell');
