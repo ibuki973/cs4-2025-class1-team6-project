@@ -12,21 +12,23 @@
                 <div class="card-body">
                     <div class="row text-center align-items-center">
                         <div class="col-5">
-                            <h4 id="p1-name" class="fw-bold text-primary">Player 1</h4>
+                            <h4 id="p1-name-display" class="fw-bold text-primary">Player 1</h4>
                             <div class="fs-2">
-                                <span class="badge bg-light text-dark border" id="p1-mark">-</span>
+                                <span class="badge bg-light text-primary border" id="p1-mark">✖</span>
                             </div>
-                            <div class="mt-2 fw-bold" id="p1-score">0 勝</div>
+                            <div class="mt-2 fw-bold text-muted" id="p1-score">0 勝</div>
                         </div>
+                        
                         <div class="col-2">
                             <span class="fs-4 text-muted">VS</span>
                         </div>
+                        
                         <div class="col-5">
-                            <h4 id="p2-name" class="fw-bold text-danger">Player 2</h4>
+                            <h4 id="p2-name-display" class="fw-bold text-danger">Player 2</h4>
                             <div class="fs-2">
-                                <span class="badge bg-light text-dark border" id="p2-mark">-</span>
+                                <span class="badge bg-light text-danger border" id="p2-mark">〇</span>
                             </div>
-                            <div class="mt-2 fw-bold" id="p2-score">0 勝</div>
+                            <div class="mt-2 fw-bold text-muted" id="p2-score">0 勝</div>
                         </div>
                     </div>
                 </div>
@@ -35,7 +37,7 @@
     </div>
 
     <div class="text-center mb-4">
-        <h3 id="status-msg" class="fw-bold">準備中...</h3>
+        <h3 id="status-msg" class="fw-bold text-dark">準備中...</h3>
         <button id="next-btn" class="btn btn-warning px-4 fw-bold shadow-sm" style="display:none;" onclick="startNextGame()">
             次の対戦へ (先行交代) <i class="fas fa-arrow-right ms-2"></i>
         </button>
@@ -58,32 +60,32 @@
 
 <div class="modal fade" id="startModal" data-bs-backdrop="static" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">プレイヤー名入力</h5>
+                <h5 class="modal-title fw-bold">プレイヤー名入力</h5>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <div class="mb-3">
-                    <label class="form-label">プレイヤー1</label>
-                    <input type="text" id="input-p1" class="form-control" value="Aさん">
+                    <label class="form-label fw-bold">プレイヤー1 (✖)</label>
+                    <input type="text" id="input-p1" class="form-control form-control-lg" value="Aさん">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">プレイヤー2</label>
-                    <input type="text" id="input-p2" class="form-control" value="Bさん">
+                    <label class="form-label fw-bold">プレイヤー2 (〇)</label>
+                    <input type="text" id="input-p2" class="form-control form-control-lg" value="Bさん">
                 </div>
-                <p class="small text-muted">
-                    ※マーク(○/×)と先行・後攻はランダムに決定されます。<br>
-                    ※次戦からマークは維持したまま、先行・後攻のみ交代します。
-                </p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary w-100" onclick="initGame()">対戦開始</button>
+                <p class="small text-muted mb-0">
+                    ※ 先行・後攻はランダムに決定されます。<br>
+                    ※ 次の試合では先行・後攻が自動で入れ替わります。
+                </div>
+            <div class="modal-footer border-0">
+                <button class="btn btn-primary btn-lg w-100 fw-bold" onclick="initGame()">対戦開始</button>
             </div>
         </div>
     </div>
 </div>
 
 <style>
+    /* オンライン盤面と統一したスタイル */
     #offline-board {
         display: grid;
         grid-template-columns: repeat(3, 100px);
@@ -102,16 +104,32 @@
         font-weight: bold;
         cursor: pointer;
         user-select: none;
+        transition: background-color 0.2s, color 0.2s;
     }
     .off-cell:hover { background-color: #f0f0f0; }
     .off-cell.taken { cursor: default; }
-    .off-cell.win { background-color: #d4edda; color: #198754; }
+    
+    /* 勝利ラインの強調 */
+    .off-cell.winning-cell {
+        background-color: #28a745 !important;
+        color: white !important;
+    }
+
+    /* マークの色分け */
+    .text-x { color: #0d6efd; }
+    .text-o { color: #dc3545; }
+
+    /* モーダル内の入力欄 */
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
 </style>
 
 <script>
     // 状態管理
-    let p1 = { name: "", mark: "", score: 0 };
-    let p2 = { name: "", mark: "", score: 0 };
+    let p1 = { name: "", mark: "✖", score: 0 };
+    let p2 = { name: "", mark: "〇", score: 0 };
     let board = Array(9).fill(null);
     let isGameActive = false;
     
@@ -128,17 +146,9 @@
         p1.name = document.getElementById('input-p1').value || "Player 1";
         p2.name = document.getElementById('input-p2').value || "Player 2";
         
-        // モーダル閉じる
         bootstrap.Modal.getInstance(document.getElementById('startModal')).hide();
 
-        // ★要件: ○×を乱数で決定
-        if (Math.random() < 0.5) {
-            p1.mark = "○"; p2.mark = "×";
-        } else {
-            p1.mark = "×"; p2.mark = "○";
-        }
-
-        // ★要件: 先行後攻を乱数で決定
+        // 初回の先行後攻をランダムに決定
         firstMover = (Math.random() < 0.5) ? 'p1' : 'p2';
 
         updateScoreBoard();
@@ -149,9 +159,8 @@
     function startRound() {
         board.fill(null);
         isGameActive = true;
-        currentPlayer = firstMover; // 先行プレイヤーから開始
+        currentPlayer = firstMover; 
 
-        // 盤面リセット
         document.querySelectorAll('.off-cell').forEach(c => {
             c.textContent = "";
             c.className = "off-cell";
@@ -161,7 +170,7 @@
         updateStatus();
     }
 
-    // 3. 次のゲーム (★要件: 先行後攻のみ交代、マークは維持)
+    // 3. 次のゲーム (先行後攻のみ交代)
     function startNextGame() {
         firstMover = (firstMover === 'p1') ? 'p2' : 'p1';
         startRound();
@@ -172,21 +181,20 @@
         const idx = cell.dataset.index;
         if (!isGameActive || board[idx]) return;
 
-        // マーク書き込み
         const playerObj = (currentPlayer === 'p1') ? p1 : p2;
         board[idx] = playerObj.mark;
         cell.textContent = playerObj.mark;
         cell.classList.add('taken');
         
-        // 色分け (○は青系、×は赤系など)
-        cell.style.color = (playerObj.mark === "○") ? "#0d6efd" : "#dc3545";
+        // 色分けの適用
+        cell.classList.add(playerObj.mark === "✖" ? "text-x" : "text-o");
 
-        if (checkWin(playerObj.mark)) {
-            endGame(playerObj);
+        const winLine = checkWin(playerObj.mark);
+        if (winLine) {
+            endGame(playerObj, winLine);
         } else if (board.every(v => v)) {
-            endGame(null); // 引き分け
+            endGame(null, null);
         } else {
-            // 交代
             currentPlayer = (currentPlayer === 'p1') ? 'p2' : 'p1';
             updateStatus();
         }
@@ -202,44 +210,47 @@
         for (let pattern of wins) {
             const [a, b, c] = pattern;
             if (board[a] === mark && board[b] === mark && board[c] === mark) {
-                // ハイライト
-                pattern.forEach(i => document.querySelector(`[data-index="${i}"]`).classList.add('win'));
-                return true;
+                return pattern; // 勝利ラインを返す
             }
         }
-        return false;
+        return null;
     }
 
     // 終了処理
-    function endGame(winner) {
+    function endGame(winner, winLine) {
         isGameActive = false;
-        const msg = document.getElementById('status-msg');
+        const msgElement = document.getElementById('status-msg');
         
         if (winner) {
-            msg.innerHTML = `🏆 <b>${winner.name}</b> の勝ち！`;
-            winner.score++; // ★要件: 戦績カウント
+            // 勝利ラインを緑色にハイライト
+            winLine.forEach(i => {
+                document.querySelector(`[data-index="${i}"]`).classList.add('winning-cell');
+            });
+            
+            const colorClass = winner.mark === "✖" ? "text-x" : "text-o";
+            msgElement.innerHTML = `🏆 <span class="${colorClass}">${winner.name} (${winner.mark})</span> の勝ち！`;
+            winner.score++;
         } else {
-            msg.textContent = "引き分け！";
+            msgElement.textContent = "引き分け！";
         }
         
         updateScoreBoard();
         document.getElementById('next-btn').style.display = "inline-block";
     }
 
-    // 表示更新系
+    // 表示更新
     function updateScoreBoard() {
-        document.getElementById('p1-name').textContent = p1.name;
-        document.getElementById('p1-mark').textContent = p1.mark;
+        document.getElementById('p1-name-display').textContent = p1.name;
         document.getElementById('p1-score').textContent = p1.score + " 勝";
 
-        document.getElementById('p2-name').textContent = p2.name;
-        document.getElementById('p2-mark').textContent = p2.mark;
+        document.getElementById('p2-name-display').textContent = p2.name;
         document.getElementById('p2-score').textContent = p2.score + " 勝";
     }
 
     function updateStatus() {
         const p = (currentPlayer === 'p1') ? p1 : p2;
-        document.getElementById('status-msg').textContent = `${p.name} (${p.mark}) のターン`;
+        const colorClass = p.mark === "✖" ? "text-x" : "text-o";
+        document.getElementById('status-msg').innerHTML = `現在のターン: <span class="${colorClass}">${p.mark} (${p.name})</span>`;
     }
 </script>
 {% endblock %}
