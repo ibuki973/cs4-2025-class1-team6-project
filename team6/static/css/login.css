@@ -83,3 +83,29 @@ button[type="submit"]:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 15px rgba(0, 114, 255, 0.3);
 }
+
+
+.signup-link {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #dfe6e9;
+    font-size: 0.9rem;
+}
+
+.signup-link p {
+    margin-bottom: 5px;
+    color: #636e72;
+    text-align: center; /* 中央揃えに上書き */
+}
+
+.signup-link a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.2s ease;
+}
+
+.signup-link a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
