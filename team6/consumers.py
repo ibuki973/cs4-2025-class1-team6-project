@@ -1,6 +1,7 @@
 import json
 import uuid
 import hashlib
+import random
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.core.cache import cache
@@ -81,6 +82,7 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
             room_data = {
                 'board': [' ' for _ in range(9)],
                 'current_player': 'X',
+                'player_wait': self.user.username, # 一時的に待機者として保存
                 'player_x': self.user.username,
                 'player_o': None,
                 'game_over': False,
@@ -89,8 +91,13 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
                 'ratings_updated': False # レート二重更新防止フラグ
             }
         elif room_data['player_o'] is None and room_data['player_x'] != self.user.username:
-            # 2人目
-            room_data['player_o'] = self.user.username
+            # 2人目が揃ったタイミングでランダムに割り振る
+            players = [room_data.pop('player_wait'), self.user.username]
+            random.shuffle(players) # 順番をシャッフル
+            
+            room_data['player_x'] = players[0] # 先行
+            room_data['player_o'] = players[1] # 後攻
+
             # 全員に開始演出を通知
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -110,9 +117,12 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
         room_key = f"game_state_{self.room_name}"
         room_data = await database_sync_to_async(cache.get)(room_key)
 
-        if not room_data or room_data['game_over']:
-            if data.get('type') == 'reset':
-                await self.handle_reset()
+        if not room_data:
+            return
+
+        # リセット要求の処理
+        if data.get('type') == 'reset':
+            await self.handle_reset_request(room_data, room_key)
             return
 
         if data.get('type') == 'move':
@@ -145,6 +155,46 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
 
                 await database_sync_to_async(cache.set)(room_key, room_data, 3600)
                 await self.broadcast_state(room_data)
+
+    async def handle_reset_request(self, room_data, room_key):
+        """リセット投票の管理"""
+        # リセット希望者リストがなければ作成
+        if 'reset_requested' not in room_data:
+            room_data['reset_requested'] = []
+
+        # すでにクリック済みの場合は何もしない
+        if self.user.username in room_data['reset_requested']:
+            return
+
+        # リストに自分を追加
+        room_data['reset_requested'].append(self.user.username)
+
+        # 全員（2人）が揃ったかチェック
+        if len(room_data['reset_requested']) >= 2:
+            # ゲーム状態を初期化
+            room_data.update({
+                'board': [' ' for _ in range(9)],
+                'current_player': 'X',
+                'game_over': False,
+                'winner': None,
+                'winning_line': [],
+                'ratings_updated': False,
+                'reset_requested': [] # リストを空に戻す
+            })
+            await database_sync_to_async(cache.set)(room_key, room_data, 3600)
+            await self.broadcast_state(room_data)
+        else:
+            # まだ1人目なら、キャッシュを更新して現在の状況を通知
+            await database_sync_to_async(cache.set)(room_key, room_data, 3600)
+            
+            # クライアント側に「相手の同意待ち」であることを伝える通知（任意）
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'game_update_event',
+                    'state': room_data
+                }
+            )
 
     async def handle_game_end_ratings(self, room_data):
         """勝敗に応じてレートを更新する"""

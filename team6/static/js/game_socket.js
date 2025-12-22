@@ -30,10 +30,23 @@ gameSocket.onmessage = function(e) {
                 const winnerName = data.winner === 'X' ? data.player_x : data.player_o;
                 const displayMark = data.winner === 'X' ? '✖' : '〇';
                 const colorClass = data.winner === 'X' ? 'text-x' : 'text-o';
-                // 勝利時も色分けして表示
                 updateStatus(`勝者: <span class="${colorClass} fw-bold">${winnerName} (${displayMark})</span>`);
             }
-            document.getElementById('reset-btn').style.display = 'inline-block';
+
+            const resetBtn = document.getElementById('reset-btn');
+            resetBtn.style.display = 'inline-block';
+
+            // 追加：リセット投票の状態によってボタンの表示を切り替える
+            // data.reset_requested はサーバー側の consumers.py で追加したリストです
+            if (data.reset_requested && data.reset_requested.includes(myUsername)) {
+                resetBtn.disabled = true;
+                resetBtn.textContent = "相手の同意を待っています...";
+            } else {
+                resetBtn.disabled = false;
+                resetBtn.textContent = "もう一度遊ぶ";
+            }
+            
+            // ボードの操作を無効化
             document.getElementById('online-board').style.pointerEvents = "none";
         } else {
             const currentMark = data.current_player; // 'X' or 'O'
