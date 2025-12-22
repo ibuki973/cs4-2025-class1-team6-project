@@ -10,7 +10,7 @@ urlpatterns = [
     path('offline/', views.tictactoe_offline, name='tictactoe_offline'),
 
     # オンライン対戦 (ルーム指定)
-    path('room/<str:room_name>/', views.tictactoe_game, name='tictactoe_room'),
+    path('room/<path:room_name>/', views.tictactoe_game, name='tictactoe_room'),
 
     # その他
     path('login/', auth_views.LoginView.as_view(), name='login'),

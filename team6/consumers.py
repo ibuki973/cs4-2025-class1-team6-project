@@ -1,5 +1,6 @@
 import json
 import uuid
+import hashlib
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.core.cache import cache
@@ -57,7 +58,10 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 class TicTacToeConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'tictactoe_{self.room_name}'
+        # 修正ポイント: 日本語のルーム名を英数字のハッシュ値に変換する
+        # unicodeのルーム名を直接使うとエラーになるため、sha256などで英数字のみの文字列にする
+        room_hash = hashlib.sha256(self.room_name.encode('utf-8')).hexdigest()[:32]
+        self.room_group_name = f'tictactoe_{room_hash}'
         self.user = self.scope["user"]
 
         if not self.user.is_authenticated:

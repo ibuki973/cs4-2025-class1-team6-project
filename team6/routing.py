@@ -6,8 +6,8 @@ websocket_urlpatterns = [
     re_path(r'ws/matchmaking/$', consumers.MatchmakingConsumer.as_asgi()),
 
     # 2. ゲーム対戦用 (tictactoe)
-    re_path(r'ws/tictactoe/(?P<room_name>\w+)/$', consumers.TicTacToeConsumer.as_asgi()),
+    re_path(r'ws/tictactoe/(?P<room_name>[^/]+)/$', consumers.TicTacToeConsumer.as_asgi()),
     
     # ★エラー回避用: 'game' というパスで来ても三目並べにつなぐ
-    re_path(r'ws/game/(?P<room_name>\w+)/$', consumers.TicTacToeConsumer.as_asgi()),
+    re_path(r'ws/game/(?P<room_name>[^/]+)/$', consumers.TicTacToeConsumer.as_asgi()),
 ]
