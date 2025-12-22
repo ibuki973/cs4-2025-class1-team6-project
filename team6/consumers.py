@@ -4,6 +4,8 @@ import hashlib
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.core.cache import cache
+from django.contrib.auth.models import User
+from .models import UserProfile
 from team6.game_logic.tictactoe import TicTacToe
 
 # --- 1. マッチング用 (不具合修正版) ---
@@ -83,7 +85,8 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
                 'player_o': None,
                 'game_over': False,
                 'winner': None,
-                'winning_line': []
+                'winning_line': [],
+                'ratings_updated': False # レート二重更新防止フラグ
             }
         elif room_data['player_o'] is None and room_data['player_x'] != self.user.username:
             # 2人目
@@ -134,8 +137,52 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
                     'winner': res['winner'],
                     'winning_line': res.get('winning_line', [])
                 })
+
+                # --- レート更新ロジックの追加 ---
+                if room_data['game_over'] and not room_data.get('ratings_updated'):
+                    await self.handle_game_end_ratings(room_data)
+                    room_data['ratings_updated'] = True # 更新済みフラグを立てる
+
                 await database_sync_to_async(cache.set)(room_key, room_data, 3600)
                 await self.broadcast_state(room_data)
+
+    async def handle_game_end_ratings(self, room_data):
+        """勝敗に応じてレートを更新する"""
+        winner = room_data['winner']
+        p_x = room_data['player_x']
+        p_o = room_data['player_o']
+
+        # 二人揃っていない場合は更新しない
+        if not p_x or not p_o:
+            return
+
+        if winner == 'X':
+            await self.update_user_ratings(p_x, p_o, is_draw=False)
+        elif winner == 'O':
+            await self.update_user_ratings(p_o, p_x, is_draw=False)
+        # 引き分けの場合は今回は変動なし（必要ならここに追加）
+
+    @database_sync_to_async
+    def update_user_ratings(self, winner_name, loser_name, is_draw=False):
+        """データベースを操作してレートを増減させる"""
+        try:
+            winner_user = User.objects.get(username=winner_name)
+            loser_user = User.objects.get(username=loser_name)
+            
+            w_profile = winner_user.profile
+            l_profile = loser_user.profile
+
+            if not is_draw:
+                w_profile.rating += 16
+                l_profile.rating -= 16
+                # レートがマイナスにならないようにガード
+                if l_profile.rating < 0:
+                    l_profile.rating = 0
+            
+            w_profile.save()
+            l_profile.save()
+        except Exception as e:
+            print(f"Rating update error: {e}")
 
     async def handle_reset(self):
         room_key = f"game_state_{self.room_name}"
@@ -146,7 +193,8 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
                 'current_player': 'X',
                 'game_over': False,
                 'winner': None,
-                'winning_line': []
+                'winning_line': [],
+                'ratings_updated': False # リセット時はフラグも戻す
             })
             await database_sync_to_async(cache.set)(room_key, room_data, 3600)
             await self.broadcast_state(room_data)
@@ -169,3 +217,5 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
             'player_x': event['player_x'],
             'player_o': event['player_o']
         }))
+
+        
