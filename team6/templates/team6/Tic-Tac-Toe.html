@@ -74,6 +74,45 @@
             </div>
         </div>
     </div>
+    <div class="modal fade" id="opponentRetiredModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-warning text-dark border-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>対戦終了</h5>
+                </div>
+                <div class="modal-body text-center p-5">
+                    <h4 class="fw-bold mb-3">相手がマッチを離脱しました</h4>
+                    <div class="display-1 text-danger mb-3">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h2 class="text-danger fw-bold mb-4">あなたの勝ちです！</h2>
+                    <button type="button" class="btn btn-dark btn-lg w-100 rounded-pill fw-bold mt-3" onclick="window.location.href='{% url 'tictactoe' %}'">
+                        <i class="fas fa-arrow-left me-2"></i>メニューに戻る
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="selfRetiredModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-danger text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-plug me-2"></i>接続切れ</h5>
+                </div>
+                <div class="modal-body text-center p-5">
+                    <h4 class="fw-bold mb-3">対戦から離れてしまいました</h4>
+                    <div class="display-1 text-secondary mb-3">
+                        <i class="fas fa-skull-crossbones"></i>
+                    </div>
+                    <h2 class="text-danger fw-bold mb-4">あなたの負けです</h2>
+                    
+                    <button type="button" class="btn btn-secondary btn-lg w-100 rounded-pill fw-bold mt-3" onclick="window.location.href='{% url 'tictactoe' %}'">
+                        <i class="fas fa-arrow-left me-2"></i>メニューに戻る
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>

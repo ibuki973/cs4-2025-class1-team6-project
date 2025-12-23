@@ -127,6 +127,9 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
                 is_me_x = (room_data['player_x'] == self.user.username)
                 room_data['winner'] = 'O' if is_me_x else 'X'
                 room_data['game_over'] = True
+
+                # 終了理由を記録 (リロード時の対策)
+                room_data['end_reason'] = 'retired'
                 
                 # レート更新
                 if not room_data.get('ratings_updated'):
@@ -134,6 +137,17 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
                     room_data['ratings_updated'] = True
                 
                 await database_sync_to_async(cache.set)(room_key, room_data, 3600)
+
+                # 相手に「離脱」イベントを通知 (自分を除外するために channel_name を付与)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'opponent_retired_event',
+                        'sender_channel_name': self.channel_name
+                    }
+                )
+
+                # 通常のステート更新も送る (背景の盤面などを更新するため)
                 await self.broadcast_state(room_data)
             return
 
@@ -183,6 +197,9 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
             is_me_x = (room_data['player_x'] == self.user.username)
             room_data['winner'] = 'O' if is_me_x else 'X'
             room_data['game_over'] = True
+
+            # 終了理由を記録 (切断による終了)
+            room_data['end_reason'] = 'retired'
             
             # レート更新
             if not room_data.get('ratings_updated'):
@@ -203,6 +220,9 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
 
     # リタイアイベントのブロードキャスト用
     async def opponent_retired_event(self, event):
+        if 'sender_channel_name' in event and event['sender_channel_name'] == self.channel_name:
+            return
+
         await self.send(text_data=json.dumps({
             'type': 'opponent_retired'
         }))

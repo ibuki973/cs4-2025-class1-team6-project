@@ -16,10 +16,17 @@ gameSocket.onopen = function(e) {
 gameSocket.onmessage = function(e) {
     const data = JSON.parse(e.data);
 
-    // 相手が離脱したという通知を受け取った場合
     if (data.type === 'opponent_retired') {
-        alert("相手がリタイアしました！あなたの勝ちです！");
-        window.location.href = "/tictactoe/";
+        // 1. モーダルの要素を取得して表示
+        const retiredModalEl = document.getElementById('opponentRetiredModal');
+        const retiredModal = new bootstrap.Modal(retiredModalEl);
+        retiredModal.show();
+
+        // 2. 3000ミリ秒（3秒）待ってからメニューへ遷移させたいときはこれをオンにする
+        // setTimeout(() => {
+        //    window.location.href = "/tictactoe/";
+        //}, 3000);
+        
         return;
     }
     
@@ -31,6 +38,26 @@ gameSocket.onmessage = function(e) {
         updatePlayerNames(data.player_x, data.player_o);
         
         if (data.game_over) {
+            // 切断(リロード)による終了で、かつ自分が負けの場合の判定
+            // 自分のマークを特定 ('X' か 'O' か)
+            let myMark = null;
+            if (data.player_x === myUsername) {
+                myMark = 'X';
+            } else if (data.player_o === myUsername) {
+                myMark = 'O';
+            }
+
+            // end_reason が 'retired' で、勝者が自分じゃない (=自分が切断した) 場合
+            if (data.end_reason === 'retired' && data.winner !== myMark && data.winner !== 'draw') {
+                const selfRetiredModalEl = document.getElementById('selfRetiredModal');
+                // HTMLに追加済みかチェックしてから表示
+                if (selfRetiredModalEl) {
+                    new bootstrap.Modal(selfRetiredModalEl).show();
+                }
+                // これ以降の通常の勝敗表示処理を行わないように return しても良いですし、
+                // 裏で表示が変わっていてもモーダルが被さるのでそのままでも大丈夫です。
+            }
+
             if (data.winner === 'draw') {
                 updateStatus("引き分け！");
             } else {
