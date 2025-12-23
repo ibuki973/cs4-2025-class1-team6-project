@@ -119,6 +119,23 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
 
         if not room_data:
             return
+        
+        # サレンダー（自発的な離脱）の処理
+        if data.get('type') == 'surrender':
+            if not room_data['game_over']:
+                # 自分を負け、相手を勝ちに設定
+                is_me_x = (room_data['player_x'] == self.user.username)
+                room_data['winner'] = 'O' if is_me_x else 'X'
+                room_data['game_over'] = True
+                
+                # レート更新
+                if not room_data.get('ratings_updated'):
+                    await self.handle_game_end_ratings(room_data)
+                    room_data['ratings_updated'] = True
+                
+                await database_sync_to_async(cache.set)(room_key, room_data, 3600)
+                await self.broadcast_state(room_data)
+            return
 
         # リセット要求の処理
         if data.get('type') == 'reset':
@@ -155,6 +172,40 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
 
                 await database_sync_to_async(cache.set)(room_key, room_data, 3600)
                 await self.broadcast_state(room_data)
+
+    async def disconnect(self, close_code):
+        # ゲーム中の切断を敗北として扱う処理
+        room_key = f"game_state_{self.room_name}"
+        room_data = await database_sync_to_async(cache.get)(room_key)
+
+        if room_data and not room_data['game_over'] and room_data['player_o'] is not None:
+            # ゲーム中かつ2人揃っている状態で切断された場合
+            is_me_x = (room_data['player_x'] == self.user.username)
+            room_data['winner'] = 'O' if is_me_x else 'X'
+            room_data['game_over'] = True
+            
+            # レート更新
+            if not room_data.get('ratings_updated'):
+                await self.handle_game_end_ratings(room_data)
+                room_data['ratings_updated'] = True
+            
+            await database_sync_to_async(cache.set)(room_key, room_data, 3600)
+            
+            # 残っている相手に通知を送信
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'opponent_retired_event'
+                }
+            )
+
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+    # リタイアイベントのブロードキャスト用
+    async def opponent_retired_event(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'opponent_retired'
+        }))
 
     async def handle_reset_request(self, room_data, room_key):
         """リセット投票の管理"""

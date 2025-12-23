@@ -15,6 +15,13 @@ gameSocket.onopen = function(e) {
 
 gameSocket.onmessage = function(e) {
     const data = JSON.parse(e.data);
+
+    // 相手が離脱したという通知を受け取った場合
+    if (data.type === 'opponent_retired') {
+        alert("相手がリタイアしました！あなたの勝ちです！");
+        window.location.href = "/tictactoe/";
+        return;
+    }
     
     if (data.type === 'game_start') {
         showStartAnimation(data.player_x, data.player_o);
@@ -108,6 +115,30 @@ function showStartAnimation(pX, pO) {
         overlay.classList.add('fade-out');
         setTimeout(() => overlay.remove(), 800);
     }, 2500);
+}
+
+// モーダルを表示する関数
+function confirmExit() {
+    // ゲームが終了している場合はそのまま戻る
+    if (document.getElementById('reset-btn').style.display !== 'none') {
+        window.location.href = "/tictactoe/";
+        return;
+    }
+    // ゲーム中の場合はモーダルを表示
+    const exitModal = new bootstrap.Modal(document.getElementById('exitModal'));
+    exitModal.show();
+}
+
+// モーダルで「戻る」を押した時の処理
+function executeExit() {
+    if (gameSocket.readyState === WebSocket.OPEN) {
+        // サーバーに「降参」を通知
+        gameSocket.send(JSON.stringify({
+            'type': 'surrender'
+        }));
+    }
+    // メニューへ遷移
+    window.location.href = "/tictactoe/";
 }
 
 function updateBoard(boardData, winningLine = []) {

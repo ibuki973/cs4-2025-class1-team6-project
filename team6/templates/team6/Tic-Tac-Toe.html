@@ -52,9 +52,27 @@
     <input type="hidden" id="my-username" value="{{ user.username }}">
 
     <div class="text-center mt-5">
-        <a href="{% url 'tictactoe' %}" class="text-muted text-decoration-none">
+        <button type="button" class="btn btn-link text-muted text-decoration-none" onclick="confirmExit()">
             <i class="fas fa-arrow-left me-1"></i> メニューに戻る
-        </a>
+        </button>
+    </div>
+
+    <div class="modal fade" id="exitModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">マッチの離脱</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <p class="fw-bold">本当にマッチを離脱しますか？<br>このゲームは敗北となります。</p>
+                </div>
+                <div class="modal-footer justify-content-center border-0">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">ゲームを続ける</button>
+                    <button type="button" class="btn btn-danger px-4" onclick="executeExit()">メニューに戻る</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
