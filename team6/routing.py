@@ -10,4 +10,7 @@ websocket_urlpatterns = [
     
     # ★エラー回避用: 'game' というパスで来ても三目並べにつなぐ
     re_path(r'ws/game/(?P<room_name>[^/]+)/$', consumers.TicTacToeConsumer.as_asgi()),
+    
+    # Eカード用
+    re_path(r'ws/ecard/(?P<room_name>[^/]+)/$', consumers.ECardConsumer.as_asgi()),
 ]

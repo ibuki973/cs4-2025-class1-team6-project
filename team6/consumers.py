@@ -338,5 +338,10 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
             'player_x': event['player_x'],
             'player_o': event['player_o']
         }))
-
         
+class ECardConsumer(AsyncWebsocketConsumer):
+    # TicTacToeConsumerのロジックをベースに、
+    # 1. お互いの手札情報をキャッシュ(Redis/In-memory)で管理
+    # 2. 両者がカードを送信したら judge() を呼び出す
+    # 3. 結果を group_send で送信
+    pass
