@@ -192,4 +192,47 @@
 </style>
 
 <script src="{% static 'js/game_socket.js' %}"></script>
+
+<div id="game-start-overlay-new" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; color: white; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+        <h1 style="font-size: 4rem; font-weight: 900; margin-bottom: 2rem;">BATTLE START</h1>
+        <div id="turn-announcement" style="font-size: 2.5rem; font-weight: bold; color: #ffc107;"></div>
+    </div>
+
+    <script>
+    // 演出を実行する関数
+    function triggerStartAnimation(myMark) {
+        const overlay = document.getElementById('game-start-overlay-new');
+        const turnText = document.getElementById('turn-announcement');
+        
+        turnText.innerText = (myMark === 'X') ? "あなたは【先行 ✖】です" : "あなたは【後攻 〇】です";
+        overlay.style.display = 'flex';
+
+        setTimeout(() => {
+            overlay.style.transition = "opacity 0.8s";
+            overlay.style.opacity = "0";
+            setTimeout(() => { 
+                overlay.style.display = 'none'; 
+                overlay.style.opacity = "1"; // 次回のために戻しておく
+            }, 800);
+        }, 2000);
+    }
+
+    // ★重要：既存の game_socket.js の処理に、この演出を無理やり「合流」させる
+    const checkStart = setInterval(() => {
+        if (typeof gameSocket !== 'undefined') {
+            const originalOnMessage = gameSocket.onmessage;
+            gameSocket.onmessage = function(e) {
+                originalOnMessage(e); // 元の処理（Waitingを消す等）を実行
+                const data = JSON.parse(e.data);
+                if (data.type === 'game_start') {
+                    // 自分が X か O かを判定
+                    const myMark = (data.player_x === document.getElementById('my-username').value) ? 'X' : 'O';
+                    triggerStartAnimation(myMark);
+                }
+            };
+            clearInterval(checkStart);
+        }
+    }, 500);
+    </script>
+    
 {% endblock %}
