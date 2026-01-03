@@ -37,7 +37,14 @@
     </div>
 
     <div class="text-center mb-4">
-        <h3 id="status-msg" class="fw-bold text-dark">準備中...</h3>
+        <div class="text-center mb-4">
+    <div id="offline-timer" class="mb-3" style="display:none;">
+        <span class="badge rounded-pill bg-dark p-2 px-4" style="border: 2px solid #ffc107;">
+            <i class="fas fa-clock text-warning me-2"></i>
+            <span id="time-left" style="font-size: 1.5rem; color: #ffc107;">20</span> 秒
+        </span>
+    </div>
+    <h3 id="status-msg" class="fw-bold text-dark">準備中...</h3>
         <button id="next-btn" class="btn btn-warning px-4 fw-bold shadow-sm" style="display:none;" onclick="startNextGame()">
             次の対戦へ (先行交代) <i class="fas fa-arrow-right ms-2"></i>
         </button>
@@ -134,13 +141,44 @@
     let isGameActive = false;
     
     let firstMover = "";   // そのゲームの先行プレイヤー ('p1' or 'p2')
-    let currentPlayer = ""; // 現在ターンのプレイヤー ('p1' or 'p2')
+    let currentPlayer = ""; // 現在ターンのプレイヤー ('p1' or 'p2') 
+    let timerInterval = null; // ★ここを追加
 
     // 起動時にモーダル表示
     document.addEventListener('DOMContentLoaded', () => {
         new bootstrap.Modal(document.getElementById('startModal')).show();
     });
 
+function resetTimer() {
+    clearInterval(timerInterval);
+    if (!isGameActive) {
+        document.getElementById('offline-timer').style.display = "none";
+        return;
+    } // ★ここ！この「出口」をここに書くことで、if文が正しく終わります。
+
+    let timeLeft = 20;
+    const timerDisplay = document.getElementById('offline-timer');
+    const timeText = document.getElementById('time-left');
+    
+    timerDisplay.style.display = "block";
+    timeText.textContent = timeLeft;
+
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        timeText.textContent = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            onTimeout();
+        }
+    }, 1000);
+}
+
+
+function onTimeout() {
+    const winner = (currentPlayer === 'p1') ? p2 : p1;
+    endGame(winner, null);
+    alert("時間切れです！");
+}
     // 1. ゲーム初期化 (最初の1回)
     function initGame() {
         p1.name = document.getElementById('input-p1').value || "Player 1";
@@ -168,6 +206,7 @@
         document.getElementById('next-btn').style.display = "none";
         
         updateStatus();
+        resetTimer();
     }
 
     // 3. 次のゲーム (先行後攻のみ交代)
@@ -197,6 +236,7 @@
         } else {
             currentPlayer = (currentPlayer === 'p1') ? 'p2' : 'p1';
             updateStatus();
+            resetTimer();
         }
     }
 
@@ -218,6 +258,7 @@
 
     // 終了処理
     function endGame(winner, winLine) {
+        clearInterval(timerInterval);
         isGameActive = false;
         const msgElement = document.getElementById('status-msg');
         

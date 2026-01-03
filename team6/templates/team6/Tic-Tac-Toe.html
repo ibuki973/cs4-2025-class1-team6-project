@@ -41,6 +41,12 @@
         </button>
     </div>
 
+    <div id="timer-box" class="text-center my-2" style="display: none;">
+    <span class="badge rounded-pill bg-danger p-2 px-4" style="font-size: 1.2rem;">
+        制限時間: <span id="timer-count">20</span>秒
+    </span>
+</div>
+
     <div class="d-flex justify-content-center">
         <div id="online-board">
             {% for i in "012345678" %}
@@ -233,6 +239,65 @@
             clearInterval(checkStart);
         }
     }, 500);
+
+    let turnCountdown = null;
+
+function updateTimer(isMyTurn) {
+    clearInterval(turnCountdown); // 前のタイマーを止める
+    
+    const timerBox = document.getElementById('timer-box');
+    const timerCount = document.getElementById('timer-count');
+    let timeLeft = 20;
+
+    timerBox.style.display = 'block';
+    timerCount.innerText = timeLeft;
+
+    // 自分の番なら赤、相手の番ならグレーにする（分かりやすさのため）
+    timerBox.firstElementChild.className = isMyTurn ? "badge rounded-pill bg-danger p-2 px-4" : "badge rounded-pill bg-secondary p-2 px-4";
+
+    turnCountdown = setInterval(() => {
+        timeLeft--;
+        timerCount.innerText = timeLeft;
+
+        if (timeLeft <= 0) {
+            clearInterval(turnCountdown);
+            if (isMyTurn) {
+                alert("時間切れです！");
+                // 既存の「サレンダー（降参）」ボタンをクリックさせることで自動負けにする
+                const surrenderBtn = document.querySelector('button[onclick*="surrender"]');
+                if (surrenderBtn) {
+                    surrenderBtn.click();
+                } else {
+                    // ボタンがない場合は直接関数を呼ぶ（プロジェクトの仕様に合わせて）
+                    if (typeof executeExit === 'function') executeExit();
+                }
+            }
+        }
+    }, 1000);
+}
+
+// サーバーからのメッセージを受け取ったときにタイマーを動かす
+const checkSocketForTimer = setInterval(() => {
+    if (typeof gameSocket !== 'undefined') {
+        const originalOnMessage = gameSocket.onmessage;
+        gameSocket.onmessage = function(e) {
+            if (originalOnMessage) originalOnMessage(e);
+            const data = JSON.parse(e.data);
+            
+            if (data.type === 'game_state') {
+                if (data.game_over) {
+                    clearInterval(turnCountdown);
+                    document.getElementById('timer-box').style.display = 'none';
+                } else {
+                    const myUser = document.getElementById('my-username').value;
+                    const currentPlayer = (data.current_player === 'X') ? data.player_x : data.player_o;
+                    updateTimer(myUser === currentPlayer);
+                }
+            }
+        };
+        clearInterval(checkSocketForTimer);
+    }
+}, 500);
     </script>
     
 {% endblock %}
