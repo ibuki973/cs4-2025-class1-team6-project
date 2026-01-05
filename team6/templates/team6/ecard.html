@@ -1,14 +1,20 @@
 {% extends 'team6/base.html' %}
+{% load static %}
+
 {% block content %}
-<div class="container text-center">
-    <h2>E-CARD対戦</h2>
-    <div id="opponent-cards" class="mb-5">
+<div class="container py-5 text-center">
+    <h2 class="mb-4">E-CARD</h2>
+    <div class="mb-3">
+        <span id="side-badge" class="badge bg-dark p-2">接続中...</span>
+    </div>
+    
+    <div id="status-msg" class="alert alert-info">相手を待っています...</div>
+
+    <div id="my-cards" class="d-flex justify-content-center gap-3 my-5">
         </div>
-    <div id="status" class="alert alert-info">カードを選んでください</div>
-    <div id="my-cards" class="d-flex justify-content-center gap-2">
-        <div class="card p-3" onclick="selectCard('E')">皇帝</div>
-        <div class="card p-3" onclick="selectCard('C')">市民</div>
-        </div>
+
+    <input type="hidden" id="my-username" value="{{ user.username }}">
 </div>
+<div id="room-name-data" style="display:none;">{{ room_name }}</div>
 <script src="{% static 'js/game2.js' %}"></script>
 {% endblock %}

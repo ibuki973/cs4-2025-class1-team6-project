@@ -1,33 +1,25 @@
 class ECard:
-    # カードの種類
-    EMPEROR = 'E'  # 皇帝
-    SLAVE = 'S'    # 奴隷
-    CITIZEN = 'C'  # 市民
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.p1_cards = [self.EMPEROR, self.CITIZEN, self.CITIZEN, self.CITIZEN, self.CITIZEN]
-        self.p2_cards = [self.SLAVE, self.CITIZEN, self.CITIZEN, self.CITIZEN, self.CITIZEN]
-        self.winner = None
+    EMPEROR = 'E'
+    CITIZEN = 'C'
+    SLAVE = 'S'
 
     @staticmethod
-    def judge(card1, card2):
+    def judge(card_emp, card_slv):
         """
-        P1のカード(card1)とP2のカード(card2)を比較
-        戻り値: 1(P1勝), 2(P2勝), 0(引き分け)
+        第1引数: 皇帝側のカード, 第2引数: 奴隷側のカード
+        戻り値: (結果メッセージ, 勝利サイド, ゲーム終了フラグ)
         """
-        if card1 == card2:
-            return 0
-        # 皇帝 vs 市民 -> 皇帝(P1)勝
-        if card1 == 'E' and card2 == 'C': return 1
-        # 市民 vs 奴隷 -> 市民(P1)勝
-        if card1 == 'C' and card2 == 'S': return 1
-        # 奴隷 vs 皇帝 -> 奴隷(P2)勝
-        if card1 == 'S' and card2 == 'E': return 2
-        # その他（皇帝 vs 奴隷 など）
-        if card1 == 'E' and card2 == 'S': return 2
-        if card1 == 'C' and card2 == 'E': return 2
-        if card1 == 'S' and card2 == 'C': return 2
-        return 0
+        # 1. 皇帝 vs 奴隷 (奴隷の逆転勝利)
+        if card_emp == 'E' and card_slv == 'S':
+            return "奴隷が皇帝を討ち取った！", 'slave_side', True
+        
+        # 2. 皇帝 vs 市民 (皇帝の勝利)
+        if card_emp == 'E' and card_slv == 'C':
+            return "皇帝の勝利！", 'emperor_side', True
+        
+        # 3. 市民 vs 奴隷 (市民の勝利)
+        if card_emp == 'C' and card_slv == 'S':
+            return "市民の勝利（皇帝側の守り）！", 'emperor_side', True
+        
+        # 4. 市民 vs 市民 (引き分け・継続)
+        return "市民同士、引き分け...", None, False

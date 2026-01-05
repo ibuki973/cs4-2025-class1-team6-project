@@ -39,3 +39,15 @@ def signup(request):
         form = UserCreationForm()
     
     return render(request, 'team6/signup.html', {'form': form})
+
+def ecard_menu(request):
+    """Eカードのメニュー画面"""
+    return render(request, 'team6/ecard_menu.html')
+
+def ecard_game(request, room_name="lobby"):
+    """
+    Eカード対戦モードの画面を表示する。
+    SyntaxErrorを防ぐため、必ず return の前で改行してください。
+    """
+    context = {'room_name': room_name}
+    return render(request, 'team6/ecard.html', context)

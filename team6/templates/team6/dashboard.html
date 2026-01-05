@@ -35,27 +35,28 @@
         </div>
     </div>
 
+    
     <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100 shadow-sm border-0" style="opacity: 0.7;">
-            <div class="card-header bg-secondary text-white text-center py-4">
-                <i class="fas fa-gamepad fa-4x"></i>
-            </div>
-            <div class="card-body text-center">
-                <h3 class="card-title fw-bold mt-3">Coming Soon</h3>
-                <h6 class="card-subtitle mb-3 text-muted">New Game</h6>
-                <p class="card-text text-secondary">
-                    新しいゲームを開発中です。<br>
-                    乞うご期待！<br>
-                    &nbsp;
-                </p>
-            </div>
-            <div class="card-footer bg-white border-top-0 text-center pb-4">
-                <button class="btn btn-secondary btn-lg px-5 rounded-pill disabled">
-                    <i class="fas fa-lock me-2"></i>準備中
-                </button>
-            </div>
+    <div class="card h-100 shadow-sm border-0 hover-card">
+        <div class="card-header bg-primary text-white text-center py-4">
+            <i class="fas fa-id-card fa-4x"></i>
+        </div>
+        <div class="card-body text-center">
+            <h3 class="card-title fw-bold mt-3">Eカード</h3>
+            <h6 class="card-subtitle mb-3 text-muted">E-Card Battle</h6>
+            <p class="card-text text-secondary">
+                皇帝か奴隷か。究極の心理戦。<br>
+                手札5枚の駆け引きを制せ！<br>
+                オンライン対戦対応。
+            </p>
+        </div>
+        <div class="card-footer bg-white border-top-0 text-center pb-4">
+            <a href="{% url 'ecard_room' room_name='lobby' %}" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm">
+                <i class="fas fa-play me-2"></i>プレイする
+            </a>
         </div>
     </div>
+</div>
 
 </div>
 
