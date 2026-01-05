@@ -1,0 +1,90 @@
+{% extends 'team6/base.html' %}
+{% load static %}
+
+{% block title %}ヒット・アンド・ブロー - オンライン対戦{% endblock %}
+
+{% block content %}
+<div class="container py-4" data-room-name="{{ room_name }}" data-game-type="hitandblow">
+    
+    <div class="row justify-content-center mb-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="row text-center align-items-center">
+                        <div class="col-5">
+                            <h4 id="p1-name" class="fw-bold text-primary">Waiting...</h4>
+                            <div class="badge bg-primary" id="p1-status">準備中</div>
+                        </div>
+                        <div class="col-2"><span class="fs-4 text-muted">VS</span></div>
+                        <div class="col-5">
+                            <h4 id="p2-name" class="fw-bold text-danger">Waiting...</h4>
+                            <div class="badge bg-danger" id="p2-status">準備中</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="text-center mb-4">
+                <h3 id="game-status" class="fw-bold text-dark">対戦相手を待っています...</h3>
+            </div>
+
+            <div id="input-section" class="card shadow-sm mb-4" style="display:none;">
+                <div class="card-body">
+                    <div class="display-area mb-3 p-3 bg-light rounded text-center">
+                        <span id="digit-display" class="fs-1 fw-bold tracking-widest">- - -</span>
+                    </div>
+                    <div class="keypad">
+                        <div class="row g-2">
+                            {% for i in "1234567890" %}
+                            <div class="col-4">
+                                <button class="btn btn-outline-secondary w-100 py-3 num-key" onclick="pressKey('{{ i }}')">{{ i }}</button>
+                            </div>
+                            {% endfor %}
+                            <div class="col-4">
+                                <button class="btn btn-danger w-100 h-100" onclick="clearInput()">消去</button>
+                            </div>
+                            <div class="col-8">
+                                <button id="submit-btn" class="btn btn-success w-100 h-100 fw-bold" onclick="submitAction()" disabled>決定</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white fw-bold">回答履歴</div>
+                <div class="card-body p-0">
+                    <ul id="history-list" class="list-group list-group-flush">
+                        </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="hidden" id="my-username" value="{{ user.username }}">
+</div>
+
+<style>
+    .tracking-widest { letter-spacing: 0.5rem; }
+    .keypad .btn { font-size: 1.25rem; font-weight: bold; border-radius: 10px; }
+    .display-area { border: 2px dashed #dee2e6; min-height: 80px; display: flex; align-items: center; justify-content: center; }
+    
+    /* 履歴のリストスタイル */
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid #eee; }
+    .badge-hit { background-color: #28a745; color: white; }
+    .badge-blow { background-color: #ffc107; color: black; }
+
+    /* 開始演出オーバーレイ (三目並べと共通) */
+    #game-start-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.9); display: flex; justify-content: center; align-items: center;
+        z-index: 10000; color: white; text-align: center;
+    }
+</style>
+
+<script src="{% static 'js/hb_socket.js' %}"></script>
+{% endblock %}

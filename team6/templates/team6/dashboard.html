@@ -36,23 +36,23 @@
     </div>
 
     <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100 shadow-sm border-0" style="opacity: 0.7;">
-            <div class="card-header bg-secondary text-white text-center py-4">
-                <i class="fas fa-gamepad fa-4x"></i>
+        <div class="card h-100 shadow-sm border-0 hover-card">
+            <div class="card-header bg-danger text-white text-center py-4">
+                <i class="fas fa-hashtag fa-4x"></i>
             </div>
             <div class="card-body text-center">
-                <h3 class="card-title fw-bold mt-3">Coming Soon</h3>
-                <h6 class="card-subtitle mb-3 text-muted">New Game</h6>
+                <h3 class="card-title fw-bold mt-3">ヒット・アンド・ブロー</h3>
+                <h6 class="card-subtitle mb-3 text-muted">Hit & Blow</h6>
                 <p class="card-text text-secondary">
-                    新しいゲームを開発中です。<br>
-                    乞うご期待！<br>
-                    &nbsp;
+                    相手の秘密の3桁を当てろ！<br>
+                    HitとBlowのヒントから<br>
+                    正解を導き出す推理ゲーム。
                 </p>
             </div>
             <div class="card-footer bg-white border-top-0 text-center pb-4">
-                <button class="btn btn-secondary btn-lg px-5 rounded-pill disabled">
-                    <i class="fas fa-lock me-2"></i>準備中
-                </button>
+                <a href="{% url 'hitandblow_game' room_name='lobby' %}" class="btn btn-danger btn-lg px-5 rounded-pill shadow-sm">
+                    <i class="fas fa-play me-2"></i>プレイする
+                </a>
             </div>
         </div>
     </div>
@@ -65,55 +65,62 @@ body {
     background-color: #f0f2f5 !important;
 }
 
-/* 2. タイトルの装飾（少し太くして存在感を出します） */
+/* 2. タイトルの装飾 */
 .display-4 {
     font-weight: 800 !important;
     color: #007bff !important;
     margin-bottom: 10px;
 }
 
-/* 3. カード本体：高さを固定して左右を揃える */
+/* 3. カード本体 */
 .hover-card, .card {
     border-radius: 20px !important;
     border: none !important;
     box-shadow: 0 10px 25px rgba(0,0,0,0.05) !important;
     transition: all 0.3s ease !important;
-    min-height: 520px; /* ここで左右の高さを強制的に一致させます */
+    min-height: 520px;
     overflow: hidden;
     background: #fff !important;
 }
 
-/* 4. ヘッダー（アイコン部分）：前の鮮やかな色を復活 */
+/* 4. ヘッダー（アイコン部分） */
 .card-header {
-    height: 200px !important; /* ヘッダーの高さも統一 */
+    height: 200px !important;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none !important;
 }
 
-/* 【三目並べ】前の「青〜緑」のグラデーション */
+/* 【三目並べ】青〜緑のグラデーション */
 .bg-primary {
     background: linear-gradient(135deg, #4285f4 0%, #34a853 100%) !important;
 }
 
-/* 【Coming Soon】落ち着いたグレーのグラデーション */
-.bg-secondary {
-    background: linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%) !important;
+/* 【ヒット・アンド・ブロー】赤〜オレンジのグラデーション */
+.bg-danger {
+    background: linear-gradient(135deg, #f44336 0%, #ff9800 100%) !important;
 }
 
-/* 5. ホバーエフェクト（動くカードのみ） */
+/* 5. ホバーエフェクト */
 .hover-card:hover {
     transform: translateY(-10px) !important;
     box-shadow: 0 20px 35px rgba(0,0,0,0.1) !important;
 }
 
 /* 6. ボタンの調整 */
-.btn-primary {
+.btn-primary, .btn-danger {
     border-radius: 50px !important;
     padding: 12px 40px !important;
     font-weight: bold !important;
+}
+
+.btn-primary {
     box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2) !important;
+}
+
+.btn-danger {
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.2) !important;
 }
 </style>
 {% endblock %}

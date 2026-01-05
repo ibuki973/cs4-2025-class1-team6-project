@@ -39,3 +39,5 @@ def signup(request):
         form = UserCreationForm()
     
     return render(request, 'team6/signup.html', {'form': form})
+def hitandblow_game(request, room_name="lobby"):
+    return render(request, 'team6/hitandblow.html', {'room_name': room_name})

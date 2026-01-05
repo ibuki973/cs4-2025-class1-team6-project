@@ -339,4 +339,107 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
             'player_o': event['player_o']
         }))
 
+# team6/consumers.py の末尾に追記
+from team6.game_logic.hitandblow import HitAndBlow
+
+class HitAndBlowConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.room_group_name = f'hb_{self.room_name}'
+        self.user = self.scope["user"]
+
+        if not self.user.is_authenticated:
+            await self.close()
+            return
+
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+
+        room_key = f"hb_state_{self.room_name}"
+        room_data = await database_sync_to_async(cache.get)(room_key)
+
+        if not room_data:
+            room_data = {
+                'phase': 'setup', # setup or playing
+                'player_x': self.user.username,
+                'player_o': None,
+                'secret_x': None,
+                'secret_o': None,
+                'current_turn': 'X',
+                'history': [],
+                'game_over': False
+            }
+        elif room_data['player_o'] is None and room_data['player_x'] != self.user.username:
+            room_data['player_o'] = self.user.username
+            # 二人揃った通知
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {'type': 'game_event', 'message': {'type': 'system', 'text': '対戦相手が揃いました。秘密の3桁を設定してください。'}}
+            )
+
+        await database_sync_to_async(cache.set)(room_key, room_data, 3600)
+        await self.broadcast_state(room_data)
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        room_key = f"hb_state_{self.room_name}"
+        room_data = await database_sync_to_async(cache.get)(room_key)
+
+        if data['type'] == 'set_secret':
+            # 秘密の数字を設定
+            if self.user.username == room_data['player_x']:
+                room_data['secret_x'] = data['value']
+            else:
+                room_data['secret_o'] = data['value']
+            
+            # 両方セット完了ならプレイ開始
+            if room_data['secret_x'] and room_data['secret_o']:
+                room_data['phase'] = 'playing'
+            
+            await database_sync_to_async(cache.set)(room_key, room_data, 3600)
+            await self.broadcast_state(room_data)
+
+        elif data['type'] == 'guess':
+            # 回答フェーズ
+            hb = HitAndBlow()
+            guess = data['value']
+            # XがOの数字を当てる、あるいはその逆
+            is_x = (self.user.username == room_data['player_x'])
+            secret = room_data['secret_o'] if is_x else room_data['secret_x']
+            
+            result = hb.calculate_result(secret, guess)
+            history_item = {
+                'user': self.user.username,
+                'guess': "".join(map(str, guess)),
+                'hit': result['hit'],
+                'blow': result['blow']
+            }
+            room_data['history'].append(history_item)
+            
+            if result['hit'] == 3:
+                room_data['game_over'] = True
+                room_data['winner'] = self.user.username
+            else:
+                room_data['current_turn'] = 'O' if is_x else 'X'
+
+            await database_sync_to_async(cache.set)(room_key, room_data, 3600)
+            await self.broadcast_state(room_data)
+
+    async def broadcast_state(self, room_data):
+        # 秘密の数字そのものは送らないようにコピーを作成
+        clean_data = room_data.copy()
+        clean_data['secret_x_set'] = room_data['secret_x'] is not None
+        clean_data['secret_o_set'] = room_data['secret_o'] is not None
+        del clean_data['secret_x']
+        del clean_data['secret_o']
         
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {'type': 'game_update', 'state': clean_data}
+        )
+
+    async def game_update(self, event):
+        await self.send(text_data=json.dumps(event['state']))
+
+    async def game_event(self, event):
+        await self.send(text_data=json.dumps(event['message']))
