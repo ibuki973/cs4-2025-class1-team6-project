@@ -2,6 +2,7 @@ import json
 import uuid
 import hashlib
 import random
+from .game_logic.ecard import ECard
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.core.cache import cache
@@ -338,6 +339,9 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
             'player_x': event['player_x'],
             'player_o': event['player_o']
         }))
+        
+# team6/consumers.py
+
 
 # team6/consumers.py の末尾に追記
 from team6.game_logic.hitandblow import HitAndBlow
@@ -443,3 +447,127 @@ class HitAndBlowConsumer(AsyncWebsocketConsumer):
 
     async def game_event(self, event):
         await self.send(text_data=json.dumps(event['message']))
+
+import json
+from channels.generic.websocket import AsyncWebsocketConsumer
+from django.core.cache import cache
+from channels.db import database_sync_to_async
+from .game_logic.ecard import ECard
+
+class ECardConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.room_group_name = f'ecard_{self.room_name}'
+        self.user = self.scope["user"]
+
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+
+        cache_key = f"ecard_state_{self.room_name}"
+        game_data = await database_sync_to_async(cache.get)(cache_key)
+
+        if not game_data:
+            game_data = {
+                'players': {}, 
+                'hands': {}, 
+                'current_battle': {}, 
+                'game_over': False,
+                'points': {}
+            }
+        
+        # 終了状態なら対戦カードのみリセット（ポイントは維持）
+        if game_data.get('game_over'):
+            game_data['current_battle'] = {}
+            game_data['game_over'] = False
+
+        username = self.user.username
+        if username not in game_data['points']:
+            game_data['points'][username] = 0
+
+        # 陣営と手札の割り当て（2人まで）
+        if username not in game_data['players'] and len(game_data['players']) < 2:
+            side = 'emperor_side' if not game_data['players'] else 'slave_side'
+            game_data['players'][username] = side
+            # 手札配布
+            game_data['hands'][username] = ['E', 'C', 'C', 'C', 'C'] if side == 'emperor_side' else ['S', 'C', 'C', 'C', 'C']
+
+        await database_sync_to_async(cache.set)(cache_key, game_data, 3600)
+
+        # 2人揃ったなら全員に通知、そうでなければ自分だけに通知
+        if len(game_data['players']) == 2:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {'type': 'game_ready_event', 'game_data': game_data}
+            )
+        else:
+            await self.send_individual_state(game_data)
+
+    async def send_individual_state(self, game_data):
+        username = self.user.username
+        opp_name = next((u for u in game_data['players'] if u != username), None)
+        opp_points = game_data['points'].get(opp_name, 0) if opp_name else 0
+
+        await self.send(text_data=json.dumps({
+            'type': 'initial_state',
+            'hand': game_data['hands'].get(username, []),
+            'side': game_data['players'].get(username),
+            'points': game_data['points'].get(username, 0),
+            'opp_points': opp_points,
+            'is_ready': len(game_data['players']) == 2
+        }))
+
+    async def game_ready_event(self, event):
+        await self.send_individual_state(event['game_data'])
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        username = self.user.username
+        cache_key = f"ecard_state_{self.room_name}"
+        game_data = await database_sync_to_async(cache.get)(cache_key)
+
+        if not game_data or game_data.get('game_over'): return
+
+        if data.get('type') == 'play_card':
+            card = data['card']
+            if card in game_data['hands'].get(username, []) and username not in game_data['current_battle']:
+                game_data['hands'][username].remove(card)
+                game_data['current_battle'][username] = card
+                await database_sync_to_async(cache.set)(cache_key, game_data, 3600)
+
+                if len(game_data['current_battle']) == 2:
+                    players = list(game_data['players'].keys())
+                    emp_u = next(p for p in players if game_data['players'][p] == 'emperor_side')
+                    slv_u = next(p for p in players if game_data['players'][p] == 'slave_side')
+
+                    msg, winner_side, is_over = ECard.judge(game_data['current_battle'][emp_u], game_data['current_battle'][slv_u])
+                    
+                    if not is_over and len(game_data['hands'][emp_u]) == 0:
+                        is_over, msg = True, "引き分け‥‥勝負つかず‥‥！"
+
+                    if is_over:
+                        game_data['game_over'] = True
+                        if winner_side == 'emperor_side': game_data['points'][emp_u] += 1
+                        elif winner_side == 'slave_side': game_data['points'][slv_u] += 3
+                        
+                        for user, pt in game_data['points'].items():
+                            if pt >= 10: msg = f"【完結】{user}が10ポイント到達！"
+                    else:
+                        game_data['current_battle'] = {}
+                    
+                    await database_sync_to_async(cache.set)(cache_key, game_data, 3600)
+                    await self.channel_layer.group_send(self.room_group_name, {
+                        'type': 'round_end', 'message': msg, 'is_over': is_over, 'game_data': game_data
+                    })
+
+    async def round_end(self, event):
+        username = self.user.username
+        gd = event['game_data']
+        opp_name = next((u for u in gd['points'] if u != username), None)
+        await self.send(text_data=json.dumps({
+            'type': 'round_result',
+            'message': event['message'],
+            'is_over': event['is_over'],
+            'new_hand': gd['hands'].get(username, []),
+            'points': gd['points'].get(username, 0),
+            'opp_points': gd['points'].get(opp_name, 0) if opp_name else 0
+        }))

@@ -1,0 +1,56 @@
+{% extends 'team6/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* 原作風のダークな背景 */
+    body { background-color: #121212 !important; color: #e0e0e0; }
+    
+    /* ポイント表示エリアのデザイン */
+    .point-container {
+        background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
+        border: 2px solid #333;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+    
+    .point-box { min-height: 100px; display: flex; align-items: center; justify-content: center; }
+    
+    .pt-label { font-size: 0.9rem; color: #888; text-transform: uppercase; letter-spacing: 2px; }
+    .pt-value { font-size: 2.5rem; font-weight: bold; color: #ffcc00; text-shadow: 0 0 10px rgba(255,204,0,0.3); }
+    
+    .vs-text { font-size: 1.2rem; color: #444; margin: 0 30px; font-style: italic; }
+
+    /* プログレスバーのカスタマイズ */
+    .progress { background-color: #222 !important; border: 1px solid #333; height: 12px !important; }
+    .progress-bar { transition: width 1s ease-in-out; }
+</style>
+
+<div class="container py-4 text-center">
+    <h1 class="display-6 fw-bold mb-4" style="color: #fff; letter-spacing: 5px;">E-CARD</h1>
+
+    <div class="point-container shadow">
+        <div id="star-count" class="point-box">
+            <div class="text-muted">Loading Points...</div>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <span id="side-badge" class="badge bg-danger px-4 py-2 fs-6 shadow-sm">陣営確認中...</span>
+    </div>
+    
+    <div id="status-msg" class="alert border-0 shadow-sm py-3" style="background: #1e2a38; color: #4fc3f7;">
+        相手の接続を待機中‥
+    </div>
+
+    <div id="my-cards" class="d-flex justify-content-center gap-3 my-5">
+        </div>
+
+    <input type="hidden" id="my-username" value="{{ user.username }}">
+    <div id="room-name-data" style="display:none;">{{ room_name }}</div>
+</div>
+
+<script src="{% static 'js/game2.js' %}"></script>
+{% endblock %}

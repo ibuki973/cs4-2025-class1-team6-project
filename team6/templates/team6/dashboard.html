@@ -12,10 +12,9 @@
 </div>
 
 <div class="row justify-content-center">
-    
     <div class="col-md-6 col-lg-4 mb-4">
         <div class="card h-100 shadow-sm border-0 hover-card">
-            <div class="card-header bg-primary text-white text-center py-4">
+            <div class="card-header bg-gradient-blue text-white text-center py-4">
                 <i class="fas fa-border-all fa-4x"></i>
             </div>
             <div class="card-body text-center">
@@ -23,13 +22,12 @@
                 <h6 class="card-subtitle mb-3 text-muted">Tic-Tac-Toe</h6>
                 <p class="card-text text-secondary">
                     定番の○×ゲーム。<br>
-                    シンプルだけど奥が深い！<br>
-                    オンライン対戦対応。
+                    シンプルだけど奥が深い！
                 </p>
             </div>
             <div class="card-footer bg-white border-top-0 text-center pb-4">
-                <a href="{% url 'tictactoe' %}" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm">
-                    <i class="fas fa-play me-2"></i>プレイする
+                <a href="/" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm">
+                    プレイする
                 </a>
             </div>
         </div>
@@ -44,19 +42,32 @@
                 <h3 class="card-title fw-bold mt-3">ヒット・アンド・ブロー</h3>
                 <h6 class="card-subtitle mb-3 text-muted">Hit & Blow</h6>
                 <p class="card-text text-secondary">
-                    相手の秘密の3桁を当てろ！<br>
+                    相手の秘密の3桁を当てろ<br>
                     HitとBlowのヒントから<br>
                     正解を導き出す推理ゲーム。
                 </p>
             </div>
             <div class="card-footer bg-white border-top-0 text-center pb-4">
                 <a href="{% url 'hitandblow_game' room_name='lobby' %}" class="btn btn-danger btn-lg px-5 rounded-pill shadow-sm">
+            <div class="card-header bg-gradient-dark text-white text-center py-4">
+                <i class="fas fa-id-card fa-4x"></i>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="card-title fw-bold mt-3">Eカード</h3>
+                <h6 class="card-subtitle mb-3 text-muted">E-Card Battle</h6>
+                <p class="card-text text-secondary">
+                    皇帝か奴隷か。究極の心理戦。<br>
+                    10ポイント先取で勝利を掴め
+                </p>
+            </div>
+            <div class="card-footer bg-white border-top-0 text-center pb-4">
+                <a href="/tictactoe/ecard/room/lobby/" class="btn btn-dark btn-lg px-5 rounded-pill shadow-sm">
+
                     <i class="fas fa-play me-2"></i>プレイする
                 </a>
             </div>
         </div>
     </div>
-
 </div>
 
 <style>
@@ -81,6 +92,7 @@ body {
     min-height: 520px;
     overflow: hidden;
     background: #fff !important;
+    transition: transform 0.3s ease;
 }
 
 /* 4. ヘッダー（アイコン部分） */
@@ -122,5 +134,9 @@ body {
 .btn-danger {
     box-shadow: 0 4px 15px rgba(220, 53, 69, 0.2) !important;
 }
+.hover-card:hover { transform: translateY(-10px); }
+.card-header { height: 160px; display: flex; align-items: center; justify-content: center; }
+.bg-gradient-blue { background: linear-gradient(135deg, #4285f4, #34a853) !important; }
+.bg-gradient-dark { background: linear-gradient(135deg, #2c3e50, #000000) !important; }
 </style>
 {% endblock %}
