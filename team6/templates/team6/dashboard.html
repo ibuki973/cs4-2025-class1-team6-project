@@ -26,7 +26,7 @@
                 </p>
             </div>
             <div class="card-footer bg-white border-top-0 text-center pb-4">
-                <a href="/" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm">
+                <a href="{% url 'tictactoe' %}" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm">
                     プレイする
                 </a>
             </div>
@@ -49,6 +49,14 @@
             </div>
             <div class="card-footer bg-white border-top-0 text-center pb-4">
                 <a href="{% url 'hitandblow_game' room_name='lobby' %}" class="btn btn-danger btn-lg px-5 rounded-pill shadow-sm">
+                    プレイする
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 shadow-sm border-0 hover-card">
             <div class="card-header bg-gradient-dark text-white text-center py-4">
                 <i class="fas fa-id-card fa-4x"></i>
             </div>
@@ -61,9 +69,8 @@
                 </p>
             </div>
             <div class="card-footer bg-white border-top-0 text-center pb-4">
-                <a href="/tictactoe/ecard/room/lobby/" class="btn btn-dark btn-lg px-5 rounded-pill shadow-sm">
-
-                    <i class="fas fa-play me-2"></i>プレイする
+                <a href="{% url 'ecard_room' room_name='lobby' %}" class="btn btn-dark btn-lg px-5 rounded-pill shadow-sm">
+                    プレイする
                 </a>
             </div>
         </div>
@@ -71,19 +78,12 @@
 </div>
 
 <style>
-/* 1. 全体の背景 */
+/* 全体の背景 */
 body {
     background-color: #f0f2f5 !important;
 }
 
-/* 2. タイトルの装飾 */
-.display-4 {
-    font-weight: 800 !important;
-    color: #007bff !important;
-    margin-bottom: 10px;
-}
-
-/* 3. カード本体 */
+/* カード本体 */
 .hover-card, .card {
     border-radius: 20px !important;
     border: none !important;
@@ -92,51 +92,32 @@ body {
     min-height: 520px;
     overflow: hidden;
     background: #fff !important;
-    transition: transform 0.3s ease;
 }
 
-/* 4. ヘッダー（アイコン部分） */
+/* ヘッダー（アイコン部分） */
 .card-header {
-    height: 200px !important;
+    height: 180px !important;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none !important;
 }
 
-/* 【三目並べ】青〜緑のグラデーション */
-.bg-primary {
-    background: linear-gradient(135deg, #4285f4 0%, #34a853 100%) !important;
-}
+.bg-gradient-blue { background: linear-gradient(135deg, #4285f4, #34a853) !important; }
+.bg-gradient-dark { background: linear-gradient(135deg, #2c3e50, #000000) !important; }
+.bg-danger { background: linear-gradient(135deg, #f44336 0%, #ff9800 100%) !important; }
 
-/* 【ヒット・アンド・ブロー】赤〜オレンジのグラデーション */
-.bg-danger {
-    background: linear-gradient(135deg, #f44336 0%, #ff9800 100%) !important;
-}
-
-/* 5. ホバーエフェクト */
+/* ホバーエフェクト */
 .hover-card:hover {
     transform: translateY(-10px) !important;
     box-shadow: 0 20px 35px rgba(0,0,0,0.1) !important;
 }
 
-/* 6. ボタンの調整 */
-.btn-primary, .btn-danger {
+/* ボタンの調整 */
+.btn-primary, .btn-danger, .btn-dark {
     border-radius: 50px !important;
     padding: 12px 40px !important;
     font-weight: bold !important;
 }
-
-.btn-primary {
-    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2) !important;
-}
-
-.btn-danger {
-    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.2) !important;
-}
-.hover-card:hover { transform: translateY(-10px); }
-.card-header { height: 160px; display: flex; align-items: center; justify-content: center; }
-.bg-gradient-blue { background: linear-gradient(135deg, #4285f4, #34a853) !important; }
-.bg-gradient-dark { background: linear-gradient(135deg, #2c3e50, #000000) !important; }
 </style>
 {% endblock %}
