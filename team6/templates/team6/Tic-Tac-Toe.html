@@ -5,6 +5,7 @@
 
 {% block content %}
 <div class="container py-4" data-room-name="{{ room_name }}" data-game-type="tictactoe">
+    
     <div class="row justify-content-center mb-4">
         <div class="col-md-8">
             <div class="card shadow-sm border-0">
@@ -12,12 +13,20 @@
                     <div class="row text-center align-items-center">
                         <div class="col-5">
                             <h4 id="p1-name" class="fw-bold text-primary">Waiting...</h4>
-                            <div class="fs-2"><span class="badge bg-light text-primary border" id="p1-mark">✖</span></div>
+                            <div class="fs-2">
+                                <span class="badge bg-light text-primary border" id="p1-mark">✖</span>
+                            </div>
                         </div>
-                        <div class="col-2"><span class="fs-4 text-muted">VS</span></div>
+                        
+                        <div class="col-2">
+                            <span class="fs-4 text-muted">VS</span>
+                        </div>
+                        
                         <div class="col-5">
                             <h4 id="p2-name" class="fw-bold text-danger">Waiting...</h4>
-                            <div class="fs-2"><span class="badge bg-light text-danger border" id="p2-mark">〇</span></div>
+                            <div class="fs-2">
+                                <span class="badge bg-light text-danger border" id="p2-mark">〇</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -33,15 +42,15 @@
     </div>
 
     <div id="timer-box" class="text-center my-2" style="display: none;">
-        <span class="badge rounded-pill bg-danger p-2 px-4" style="font-size: 1.2rem;">
-            制限時間: <span id="timer-count">20</span>秒
-        </span>
-    </div>
+    <span class="badge rounded-pill bg-danger p-2 px-4" style="font-size: 1.2rem;">
+        制限時間: <span id="timer-count">20</span>秒
+    </span>
+</div>
 
     <div class="d-flex justify-content-center">
-        <div id="online-board" style="pointer-events: none; opacity: 0.6;">
+        <div id="online-board">
             {% for i in "012345678" %}
-            <div class="cell" data-index="{{ forloop.counter0 }}" onclick="sendMove({{ forloop.counter0 }})"></div>
+            <div class="cell" data-index="{{ i }}" onclick="sendMove({{ i }})"></div>
             {% endfor %}
         </div>
     </div>
@@ -54,18 +63,65 @@
         </button>
     </div>
 
-    <div class="modal fade" id="exitModal" tabindex="-1">...</div>
-    <div class="modal fade" id="opponentRetiredModal" data-bs-backdrop="static">...</div>
-    <div class="modal fade" id="selfRetiredModal" data-bs-backdrop="static">...</div>
-</div>
-
-<div id="game-start-overlay-new" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; color: white; display: flex; justify-content: center; align-items: center; flex-direction: column;">
-    <h1 style="font-size: 4rem; font-weight: 900; margin-bottom: 2rem;">BATTLE START</h1>
-    <div id="turn-announcement" style="font-size: 2.5rem; font-weight: bold; color: #ffc107;"></div>
+    <div class="modal fade" id="exitModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">マッチの離脱</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <p class="fw-bold">本当にマッチを離脱しますか？<br>このゲームは敗北となります。</p>
+                </div>
+                <div class="modal-footer justify-content-center border-0">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">ゲームを続ける</button>
+                    <button type="button" class="btn btn-danger px-4" onclick="executeExit()">メニューに戻る</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="opponentRetiredModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-warning text-dark border-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>対戦終了</h5>
+                </div>
+                <div class="modal-body text-center p-5">
+                    <h4 class="fw-bold mb-3">相手がマッチを離脱しました</h4>
+                    <div class="display-1 text-danger mb-3">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h2 class="text-danger fw-bold mb-4">あなたの勝ちです！</h2>
+                    <button type="button" class="btn btn-dark btn-lg w-100 rounded-pill fw-bold mt-3" onclick="window.location.href='{% url 'tictactoe' %}'">
+                        <i class="fas fa-arrow-left me-2"></i>メニューに戻る
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="selfRetiredModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-danger text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-plug me-2"></i>接続切れ</h5>
+                </div>
+                <div class="modal-body text-center p-5">
+                    <h4 class="fw-bold mb-3">対戦から離れてしまいました</h4>
+                    <div class="display-1 text-secondary mb-3">
+                        <i class="fas fa-skull-crossbones"></i>
+                    </div>
+                    <h2 class="text-danger fw-bold mb-4">あなたの負けです</h2>
+                    
+                    <button type="button" class="btn btn-secondary btn-lg w-100 rounded-pill fw-bold mt-3" onclick="window.location.href='{% url 'tictactoe' %}'">
+                        <i class="fas fa-arrow-left me-2"></i>メニューに戻る
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
-
     #online-board {
         display: grid;
         grid-template-columns: repeat(3, 100px);
@@ -142,4 +198,106 @@
 </style>
 
 <script src="{% static 'js/game_socket.js' %}"></script>
+
+<div id="game-start-overlay-new" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; color: white; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+        <h1 style="font-size: 4rem; font-weight: 900; margin-bottom: 2rem;">BATTLE START</h1>
+        <div id="turn-announcement" style="font-size: 2.5rem; font-weight: bold; color: #ffc107;"></div>
+    </div>
+
+    <script>
+    // 演出を実行する関数
+    function triggerStartAnimation(myMark) {
+        const overlay = document.getElementById('game-start-overlay-new');
+        const turnText = document.getElementById('turn-announcement');
+        
+        turnText.innerText = (myMark === 'X') ? "あなたは【先行 ✖】です" : "あなたは【後攻 〇】です";
+        overlay.style.display = 'flex';
+
+        setTimeout(() => {
+            overlay.style.transition = "opacity 0.8s";
+            overlay.style.opacity = "0";
+            setTimeout(() => { 
+                overlay.style.display = 'none'; 
+                overlay.style.opacity = "1"; // 次回のために戻しておく
+            }, 800);
+        }, 2000);
+    }
+
+    // ★重要：既存の game_socket.js の処理に、この演出を無理やり「合流」させる
+    const checkStart = setInterval(() => {
+        if (typeof gameSocket !== 'undefined') {
+            const originalOnMessage = gameSocket.onmessage;
+            gameSocket.onmessage = function(e) {
+                originalOnMessage(e); // 元の処理（Waitingを消す等）を実行
+                const data = JSON.parse(e.data);
+                if (data.type === 'game_start') {
+                    // 自分が X か O かを判定
+                    const myMark = (data.player_x === document.getElementById('my-username').value) ? 'X' : 'O';
+                    triggerStartAnimation(myMark);
+                }
+            };
+            clearInterval(checkStart);
+        }
+    }, 500);
+
+    let turnCountdown = null;
+
+function updateTimer(isMyTurn) {
+    clearInterval(turnCountdown); // 前のタイマーを止める
+    
+    const timerBox = document.getElementById('timer-box');
+    const timerCount = document.getElementById('timer-count');
+    let timeLeft = 20;
+
+    timerBox.style.display = 'block';
+    timerCount.innerText = timeLeft;
+
+    // 自分の番なら赤、相手の番ならグレーにする（分かりやすさのため）
+    timerBox.firstElementChild.className = isMyTurn ? "badge rounded-pill bg-danger p-2 px-4" : "badge rounded-pill bg-secondary p-2 px-4";
+
+    turnCountdown = setInterval(() => {
+        timeLeft--;
+        timerCount.innerText = timeLeft;
+
+        if (timeLeft <= 0) {
+            clearInterval(turnCountdown);
+            if (isMyTurn) {
+                alert("時間切れです！");
+                // 既存の「サレンダー（降参）」ボタンをクリックさせることで自動負けにする
+                const surrenderBtn = document.querySelector('button[onclick*="surrender"]');
+                if (surrenderBtn) {
+                    surrenderBtn.click();
+                } else {
+                    // ボタンがない場合は直接関数を呼ぶ（プロジェクトの仕様に合わせて）
+                    if (typeof executeExit === 'function') executeExit();
+                }
+            }
+        }
+    }, 1000);
+}
+
+// サーバーからのメッセージを受け取ったときにタイマーを動かす
+const checkSocketForTimer = setInterval(() => {
+    if (typeof gameSocket !== 'undefined') {
+        const originalOnMessage = gameSocket.onmessage;
+        gameSocket.onmessage = function(e) {
+            if (originalOnMessage) originalOnMessage(e);
+            const data = JSON.parse(e.data);
+            
+            if (data.type === 'game_state') {
+                if (data.game_over) {
+                    clearInterval(turnCountdown);
+                    document.getElementById('timer-box').style.display = 'none';
+                } else {
+                    const myUser = document.getElementById('my-username').value;
+                    const currentPlayer = (data.current_player === 'X') ? data.player_x : data.player_o;
+                    updateTimer(myUser === currentPlayer);
+                }
+            }
+        };
+        clearInterval(checkSocketForTimer);
+    }
+}, 500);
+    </script>
+    
 {% endblock %}
