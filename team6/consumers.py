@@ -342,6 +342,12 @@ class TicTacToeConsumer(AsyncWebsocketConsumer):
         
 # team6/consumers.py
 
+import json
+from channels.generic.websocket import AsyncWebsocketConsumer
+from django.core.cache import cache
+from channels.db import database_sync_to_async
+from .game_logic.ecard import ECard
+
 class ECardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
@@ -351,55 +357,61 @@ class ECardConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
-        # ゲーム状態の取得
         cache_key = f"ecard_state_{self.room_name}"
         game_data = await database_sync_to_async(cache.get)(cache_key)
 
-        # データがない、または前回の対戦が完全に終了（game_over）していたら「対戦カード」のみ初期化
-        # ※ stars は保持し続けたいので、game_data自体を消さずに構造を作る
         if not game_data:
             game_data = {
                 'players': {}, 
                 'hands': {}, 
                 'current_battle': {}, 
                 'game_over': False,
-                'stars': {}  # ユーザーごとの星
+                'points': {}
             }
         
-        # もし前回の対戦が終わっていたら、手札と場をリセット（星は残す）
+        # 終了状態なら対戦カードのみリセット（ポイントは維持）
         if game_data.get('game_over'):
-            game_data['hands'] = {}
             game_data['current_battle'] = {}
             game_data['game_over'] = False
 
         username = self.user.username
-        
-        # 星の初期化（初めての参加者のみ3つ）
-        if username not in game_data['stars']:
-            game_data['stars'][username] = 3
+        if username not in game_data['points']:
+            game_data['points'][username] = 0
 
-        # 陣営と手札の割り当て
+        # 陣営と手札の割り当て（2人まで）
         if username not in game_data['players'] and len(game_data['players']) < 2:
             side = 'emperor_side' if not game_data['players'] else 'slave_side'
             game_data['players'][username] = side
-        
-        # 手札の配布
-        if username in game_data['players']:
-            side = game_data['players'][username]
-            if side == 'emperor_side':
-                game_data['hands'][username] = ['E', 'C', 'C', 'C', 'C']
-            else:
-                game_data['hands'][username] = ['S', 'C', 'C', 'C', 'C']
+            # 手札配布
+            game_data['hands'][username] = ['E', 'C', 'C', 'C', 'C'] if side == 'emperor_side' else ['S', 'C', 'C', 'C', 'C']
 
         await database_sync_to_async(cache.set)(cache_key, game_data, 3600)
-        
-        # クライアントに初期状態（自分の陣営、手札、現在の星の数）を送信
+
+        # 2人揃ったなら全員に通知、そうでなければ自分だけに通知
+        if len(game_data['players']) == 2:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {'type': 'game_ready_event', 'game_data': game_data}
+            )
+        else:
+            await self.send_individual_state(game_data)
+
+    async def send_individual_state(self, game_data):
+        username = self.user.username
+        opp_name = next((u for u in game_data['players'] if u != username), None)
+        opp_points = game_data['points'].get(opp_name, 0) if opp_name else 0
+
         await self.send(text_data=json.dumps({
             'type': 'initial_state',
             'hand': game_data['hands'].get(username, []),
             'side': game_data['players'].get(username),
-            'stars': game_data['stars'].get(username, 3)
+            'points': game_data['points'].get(username, 0),
+            'opp_points': opp_points,
+            'is_ready': len(game_data['players']) == 2
         }))
+
+    async def game_ready_event(self, event):
+        await self.send_individual_state(event['game_data'])
 
     async def receive(self, text_data):
         data = json.loads(text_data)
@@ -407,68 +419,49 @@ class ECardConsumer(AsyncWebsocketConsumer):
         cache_key = f"ecard_state_{self.room_name}"
         game_data = await database_sync_to_async(cache.get)(cache_key)
 
-        if not game_data or game_data.get('game_over'):
-            return
+        if not game_data or game_data.get('game_over'): return
 
         if data.get('type') == 'play_card':
             card = data['card']
-            
             if card in game_data['hands'].get(username, []) and username not in game_data['current_battle']:
                 game_data['hands'][username].remove(card)
                 game_data['current_battle'][username] = card
                 await database_sync_to_async(cache.set)(cache_key, game_data, 3600)
 
-                # 2人揃ったら判定
                 if len(game_data['current_battle']) == 2:
                     players = list(game_data['players'].keys())
-                    # プレイヤー特定
                     emp_u = next(p for p in players if game_data['players'][p] == 'emperor_side')
                     slv_u = next(p for p in players if game_data['players'][p] == 'slave_side')
 
-                    c_emp = game_data['current_battle'][emp_u]
-                    c_slv = game_data['current_battle'][slv_u]
+                    msg, winner_side, is_over = ECard.judge(game_data['current_battle'][emp_u], game_data['current_battle'][slv_u])
                     
-                    msg, winner_side, is_over = ECard.judge(c_emp, c_slv)
-                    
-                    # 引き分け（手札切れ）判定
                     if not is_over and len(game_data['hands'][emp_u]) == 0:
-                        is_over = True
-                        msg = "全ての手札を使い切りました。引き分けです。"
+                        is_over, msg = True, "引き分け‥‥勝負つかず‥‥！"
 
-                    # ★勝利時に星を奪い合う処理
                     if is_over:
                         game_data['game_over'] = True
-                        if winner_side == 'emperor_side':
-                            game_data['stars'][emp_u] += 1
-                            game_data['stars'][slv_u] -= 1
-                        elif winner_side == 'slave_side':
-                            game_data['stars'][slv_u] += 1
-                            game_data['stars'][emp_u] -= 1
-                        # ゲームオーバー時はキャッシュをすぐ消さず、「再戦ボタン」が押されるまで保持するか、
-                        # または一部データを残して保存する。今回は星を維持するため保存する。
-                        await database_sync_to_async(cache.set)(cache_key, game_data, 3600)
+                        if winner_side == 'emperor_side': game_data['points'][emp_u] += 1
+                        elif winner_side == 'slave_side': game_data['points'][slv_u] += 3
+                        
+                        for user, pt in game_data['points'].items():
+                            if pt >= 10: msg = f"【完結】{user}が10ポイント到達！"
                     else:
                         game_data['current_battle'] = {}
-                        await database_sync_to_async(cache.set)(cache_key, game_data, 3600)
-
-                    # 全員に結果を通知
+                    
+                    await database_sync_to_async(cache.set)(cache_key, game_data, 3600)
                     await self.channel_layer.group_send(self.room_group_name, {
-                        'type': 'round_end',
-                        'message': msg,
-                        'is_over': is_over,
-                        'game_data': game_data
+                        'type': 'round_end', 'message': msg, 'is_over': is_over, 'game_data': game_data
                     })
 
     async def round_end(self, event):
-        """全員のブラウザに判定結果と最新の星の数を送る"""
         username = self.user.username
-        my_hand = event['game_data']['hands'].get(username, [])
-        my_stars = event['game_data']['stars'].get(username, 0)
-
+        gd = event['game_data']
+        opp_name = next((u for u in gd['points'] if u != username), None)
         await self.send(text_data=json.dumps({
             'type': 'round_result',
             'message': event['message'],
             'is_over': event['is_over'],
-            'new_hand': my_hand,
-            'stars': my_stars # ★追加
+            'new_hand': gd['hands'].get(username, []),
+            'points': gd['points'].get(username, 0),
+            'opp_points': gd['points'].get(opp_name, 0) if opp_name else 0
         }))

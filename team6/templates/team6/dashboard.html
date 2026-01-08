@@ -12,10 +12,9 @@
 </div>
 
 <div class="row justify-content-center">
-    
     <div class="col-md-6 col-lg-4 mb-4">
         <div class="card h-100 shadow-sm border-0 hover-card">
-            <div class="card-header bg-primary text-white text-center py-4">
+            <div class="card-header bg-gradient-blue text-white text-center py-4">
                 <i class="fas fa-border-all fa-4x"></i>
             </div>
             <div class="card-body text-center">
@@ -23,98 +22,51 @@
                 <h6 class="card-subtitle mb-3 text-muted">Tic-Tac-Toe</h6>
                 <p class="card-text text-secondary">
                     定番の○×ゲーム。<br>
-                    シンプルだけど奥が深い！<br>
-                    オンライン対戦対応。
+                    シンプルだけど奥が深い！
                 </p>
             </div>
             <div class="card-footer bg-white border-top-0 text-center pb-4">
-                <a href="{% url 'tictactoe' %}" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm">
-                    <i class="fas fa-play me-2"></i>プレイする
+                <a href="/" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm">
+                    プレイする
                 </a>
             </div>
         </div>
     </div>
 
-    
     <div class="col-md-6 col-lg-4 mb-4">
-    <div class="card h-100 shadow-sm border-0 hover-card">
-        <div class="card-header bg-primary text-white text-center py-4">
-            <i class="fas fa-id-card fa-4x"></i>
-        </div>
-        <div class="card-body text-center">
-            <h3 class="card-title fw-bold mt-3">Eカード</h3>
-            <h6 class="card-subtitle mb-3 text-muted">E-Card Battle</h6>
-            <p class="card-text text-secondary">
-                皇帝か奴隷か。究極の心理戦。<br>
-                手札5枚の駆け引きを制せ！<br>
-                オンライン対戦対応。
-            </p>
-        </div>
-        <div class="card-footer bg-white border-top-0 text-center pb-4">
-            <a href="{% url 'ecard_room' room_name='lobby' %}" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm">
-                <i class="fas fa-play me-2"></i>プレイする
-            </a>
+        <div class="card h-100 shadow-sm border-0 hover-card">
+            <div class="card-header bg-gradient-dark text-white text-center py-4">
+                <i class="fas fa-id-card fa-4x"></i>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="card-title fw-bold mt-3">Eカード</h3>
+                <h6 class="card-subtitle mb-3 text-muted">E-Card Battle</h6>
+                <p class="card-text text-secondary">
+                    皇帝か奴隷か。究極の心理戦。<br>
+                    10ポイント先取で勝利を掴め！
+                </p>
+            </div>
+            <div class="card-footer bg-white border-top-0 text-center pb-4">
+                <a href="/tictactoe/ecard/room/lobby/" class="btn btn-dark btn-lg px-5 rounded-pill shadow-sm">
+                    <i class="fas fa-play me-2"></i>プレイする
+                </a>
+            </div>
         </div>
     </div>
 </div>
 
-</div>
-
 <style>
-/* 1. 全体の背景 */
-body {
-    background-color: #f0f2f5 !important;
-}
-
-/* 2. タイトルの装飾（少し太くして存在感を出します） */
-.display-4 {
-    font-weight: 800 !important;
-    color: #007bff !important;
-    margin-bottom: 10px;
-}
-
-/* 3. カード本体：高さを固定して左右を揃える */
-.hover-card, .card {
+/* シンプルで確実なスタイル */
+body { background-color: #f0f2f5 !important; }
+.hover-card {
     border-radius: 20px !important;
-    border: none !important;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.05) !important;
-    transition: all 0.3s ease !important;
-    min-height: 520px; /* ここで左右の高さを強制的に一致させます */
-    overflow: hidden;
+    min-height: 500px;
     background: #fff !important;
+    transition: transform 0.3s ease;
 }
-
-/* 4. ヘッダー（アイコン部分）：前の鮮やかな色を復活 */
-.card-header {
-    height: 200px !important; /* ヘッダーの高さも統一 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none !important;
-}
-
-/* 【三目並べ】前の「青〜緑」のグラデーション */
-.bg-primary {
-    background: linear-gradient(135deg, #4285f4 0%, #34a853 100%) !important;
-}
-
-/* 【Coming Soon】落ち着いたグレーのグラデーション */
-.bg-secondary {
-    background: linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%) !important;
-}
-
-/* 5. ホバーエフェクト（動くカードのみ） */
-.hover-card:hover {
-    transform: translateY(-10px) !important;
-    box-shadow: 0 20px 35px rgba(0,0,0,0.1) !important;
-}
-
-/* 6. ボタンの調整 */
-.btn-primary {
-    border-radius: 50px !important;
-    padding: 12px 40px !important;
-    font-weight: bold !important;
-    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2) !important;
-}
+.hover-card:hover { transform: translateY(-10px); }
+.card-header { height: 160px; display: flex; align-items: center; justify-content: center; }
+.bg-gradient-blue { background: linear-gradient(135deg, #4285f4, #34a853) !important; }
+.bg-gradient-dark { background: linear-gradient(135deg, #2c3e50, #000000) !important; }
 </style>
 {% endblock %}

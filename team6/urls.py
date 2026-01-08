@@ -8,9 +8,9 @@ urlpatterns = [
     path('offline/', views.tictactoe_offline, name='tictactoe_offline'),
     path('room/<path:room_name>/', views.tictactoe_game, name='tictactoe_room'),
     
-    # --- Eカード用 (ここを追記/確認) ---
-    path('ecard/', views.ecard_menu, name='ecard_menu'), # メニュー画面
-    path('ecard/room/<path:room_name>/', views.ecard_game, name='ecard_room'), # 対戦画面
+    # --- Eカード用 (パスを少し短く調整) ---
+    path('ecard/menu/', views.ecard_menu, name='ecard_menu'),
+    path('ecard/room/<path:room_name>/', views.ecard_game, name='ecard_room'),
     
     # --- 共通 ---
     path('login/', auth_views.LoginView.as_view(), name='login'),
