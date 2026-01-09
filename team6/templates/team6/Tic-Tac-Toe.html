@@ -199,61 +199,55 @@
 
 <script src="{% static 'js/game_socket.js' %}"></script>
 
-<div id="game-start-overlay-new" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; color: white; display: flex; justify-content: center; align-items: center; flex-direction: column;">
-        <h1 style="font-size: 4rem; font-weight: 900; margin-bottom: 2rem;">BATTLE START</h1>
+<div id="game-start-overlay-new" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; color: white; justify-content: center; align-items: center; flex-direction: column;"></div>
+        
         <div id="turn-announcement" style="font-size: 2.5rem; font-weight: bold; color: #ffc107;"></div>
     </div>
 
-    <script>
-    // 演出を実行する関数
-    function triggerStartAnimation(myMark) {
-        const overlay = document.getElementById('game-start-overlay-new');
-        const turnText = document.getElementById('turn-announcement');
-        
-        turnText.innerText = (myMark === 'X') ? "あなたは【先行 ✖】です" : "あなたは【後攻 〇】です";
-        overlay.style.display = 'flex';
+<script>
+// 1. タイマー制御用の変数
+let turnCountdown = null;
 
+/**
+ * ゲーム開始演出を実行する関数
+ */
+function triggerStartAnimation(myMark) {
+    const overlay = document.getElementById('game-start-overlay-new');
+    const turnText = document.getElementById('turn-announcement');
+    if (!overlay || !turnText) return;
+
+    turnText.innerText = (myMark === 'X') ? "あなたは【先行 ✖】です" : "あなたは【後攻 〇】です";
+    overlay.style.opacity = "1";
+    overlay.style.display = 'flex';
+
+    setTimeout(() => {
+        overlay.style.transition = "opacity 0.8s";
+        overlay.style.opacity = "0";
         setTimeout(() => {
-            overlay.style.transition = "opacity 0.8s";
-            overlay.style.opacity = "0";
-            setTimeout(() => { 
-                overlay.style.display = 'none'; 
-                overlay.style.opacity = "1"; // 次回のために戻しておく
-            }, 800);
-        }, 2000);
-    }
+            overlay.style.display = 'none';
+            overlay.style.transition = ""; 
+        }, 800);
+    }, 2000);
+}
 
-    // ★重要：既存の game_socket.js の処理に、この演出を無理やり「合流」させる
-    const checkStart = setInterval(() => {
-        if (typeof gameSocket !== 'undefined') {
-            const originalOnMessage = gameSocket.onmessage;
-            gameSocket.onmessage = function(e) {
-                originalOnMessage(e); // 元の処理（Waitingを消す等）を実行
-                const data = JSON.parse(e.data);
-                if (data.type === 'game_start') {
-                    // 自分が X か O かを判定
-                    const myMark = (data.player_x === document.getElementById('my-username').value) ? 'X' : 'O';
-                    triggerStartAnimation(myMark);
-                }
-            };
-            clearInterval(checkStart);
-        }
-    }, 500);
-
-    let turnCountdown = null;
-
+/**
+ * 持ち時間タイマーを更新・開始する関数
+ */
 function updateTimer(isMyTurn) {
-    clearInterval(turnCountdown); // 前のタイマーを止める
-    
+    clearInterval(turnCountdown); // 既存のタイマーをクリア
+
     const timerBox = document.getElementById('timer-box');
     const timerCount = document.getElementById('timer-count');
-    let timeLeft = 20;
+    if (!timerBox || !timerCount) return;
 
+    let timeLeft = 20;
     timerBox.style.display = 'block';
     timerCount.innerText = timeLeft;
 
-    // 自分の番なら赤、相手の番ならグレーにする（分かりやすさのため）
-    timerBox.firstElementChild.className = isMyTurn ? "badge rounded-pill bg-danger p-2 px-4" : "badge rounded-pill bg-secondary p-2 px-4";
+    // デザインの適用: 自分の番なら赤(bg-danger)、相手の番ならグレー(bg-secondary)
+    timerBox.firstElementChild.className = isMyTurn 
+        ? "badge rounded-pill bg-danger p-2 px-4" 
+        : "badge rounded-pill bg-secondary p-2 px-4";
 
     turnCountdown = setInterval(() => {
         timeLeft--;
@@ -263,41 +257,56 @@ function updateTimer(isMyTurn) {
             clearInterval(turnCountdown);
             if (isMyTurn) {
                 alert("時間切れです！");
-                // 既存の「サレンダー（降参）」ボタンをクリックさせることで自動負けにする
-                const surrenderBtn = document.querySelector('button[onclick*="surrender"]');
-                if (surrenderBtn) {
-                    surrenderBtn.click();
+                // 降参処理を実行
+                if (typeof executeExit === 'function') {
+                    executeExit();
                 } else {
-                    // ボタンがない場合は直接関数を呼ぶ（プロジェクトの仕様に合わせて）
-                    if (typeof executeExit === 'function') executeExit();
+                    const surrenderBtn = document.querySelector('button[onclick*="surrender"]');
+                    if (surrenderBtn) surrenderBtn.click();
                 }
             }
         }
     }, 1000);
 }
 
-// サーバーからのメッセージを受け取ったときにタイマーを動かす
-const checkSocketForTimer = setInterval(() => {
+/**
+ * WebSocketの受信処理を一本化して初期化
+ * (演出用とタイマー用のフックが競合するのを防ぎます)
+ */
+const checkSocketInit = setInterval(() => {
     if (typeof gameSocket !== 'undefined') {
         const originalOnMessage = gameSocket.onmessage;
+        
         gameSocket.onmessage = function(e) {
-            if (originalOnMessage) originalOnMessage(e);
+            // 元のgame_socket.js側の受信処理を安全に実行
+            if (typeof originalOnMessage === 'function') {
+                originalOnMessage(e);
+            }
+
             const data = JSON.parse(e.data);
-            
+            const myUsername = document.getElementById('my-username').value;
+
+            // 演出のトリガー
+            if (data.type === 'game_start') {
+                const myMark = (data.player_x === myUsername) ? 'X' : 'O';
+                triggerStartAnimation(myMark);
+            }
+
+            // タイマーのトリガー
             if (data.type === 'game_state') {
                 if (data.game_over) {
                     clearInterval(turnCountdown);
-                    document.getElementById('timer-box').style.display = 'none';
+                    const tBox = document.getElementById('timer-box');
+                    if (tBox) tBox.style.display = 'none';
                 } else {
-                    const myUser = document.getElementById('my-username').value;
-                    const currentPlayer = (data.current_player === 'X') ? data.player_x : data.player_o;
-                    updateTimer(myUser === currentPlayer);
+                    const currentPlayerName = (data.current_player === 'X') ? data.player_x : data.player_o;
+                    updateTimer(myUsername === currentPlayerName);
                 }
             }
         };
-        clearInterval(checkSocketForTimer);
+        clearInterval(checkSocketInit);
     }
 }, 500);
-    </script>
+</script>
     
 {% endblock %}
