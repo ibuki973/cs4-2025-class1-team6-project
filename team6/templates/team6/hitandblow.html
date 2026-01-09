@@ -13,12 +13,12 @@
                     <div class="row text-center align-items-center">
                         <div class="col-5">
                             <h4 id="p1-name" class="fw-bold text-primary">Waiting...</h4>
-                            <div class="badge bg-primary" id="p1-status">準備中</div>
+                            <div class="badge bg-light text-primary border" id="p1-status">準備中</div>
                         </div>
                         <div class="col-2"><span class="fs-4 text-muted">VS</span></div>
                         <div class="col-5">
                             <h4 id="p2-name" class="fw-bold text-danger">Waiting...</h4>
-                            <div class="badge bg-danger" id="p2-status">準備中</div>
+                            <div class="badge bg-light text-danger border" id="p2-status">準備中</div>
                         </div>
                     </div>
                 </div>
@@ -40,16 +40,10 @@
                     <div class="keypad">
                         <div class="row g-2">
                             {% for i in "1234567890" %}
-                            <div class="col-4">
-                                <button class="btn btn-outline-secondary w-100 py-3 num-key" onclick="pressKey('{{ i }}')">{{ i }}</button>
-                            </div>
+                            <div class="col-4"><button class="btn btn-outline-secondary w-100 py-3 num-key" onclick="pressKey('{{ i }}')">{{ i }}</button></div>
                             {% endfor %}
-                            <div class="col-4">
-                                <button class="btn btn-danger w-100 h-100" onclick="clearInput()">消去</button>
-                            </div>
-                            <div class="col-8">
-                                <button id="submit-btn" class="btn btn-success w-100 h-100 fw-bold" onclick="submitAction()" disabled>決定</button>
-                            </div>
+                            <div class="col-4"><button class="btn btn-danger w-100 h-100" onclick="clearInput()">消去</button></div>
+                            <div class="col-8"><button id="submit-btn" class="btn btn-success w-100 h-100 fw-bold" onclick="submitAction()" disabled>決定</button></div>
                         </div>
                     </div>
                 </div>
@@ -57,33 +51,90 @@
 
             <div class="card shadow-sm">
                 <div class="card-header bg-dark text-white fw-bold">回答履歴</div>
-                <div class="card-body p-0">
-                    <ul id="history-list" class="list-group list-group-flush">
-                        </ul>
-                </div>
+                <div class="card-body p-0"><ul id="history-list" class="list-group list-group-flush"></ul></div>
             </div>
         </div>
     </div>
 
     <input type="hidden" id="my-username" value="{{ user.username }}">
+
+    <div class="text-center mt-5">
+        <button type="button" class="btn btn-link text-muted text-decoration-none" onclick="confirmExit()">
+            <i class="fas fa-arrow-left me-1"></i> メニューに戻る
+        </button>
+    </div>
+
+    <div class="modal fade" id="exitModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white"><h5 class="modal-title">マッチの離脱</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body text-center p-4"><p class="fw-bold">本当にマッチを離脱しますか？<br>このゲームは敗北となります。</p></div>
+                <div class="modal-footer justify-content-center border-0">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">ゲームを続ける</button>
+                    <button type="button" class="btn btn-danger px-4" onclick="executeExit()">メニューに戻る</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="opponentRetiredModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-warning text-dark border-0"><h5 class="modal-title fw-bold">対戦終了</h5></div>
+                <div class="modal-body text-center p-5">
+                    <h4 class="fw-bold mb-3">相手がマッチを離脱しました</h4>
+                    <h2 class="text-danger fw-bold mb-4">あなたの不戦勝です！</h2>
+                    <button type="button" class="btn btn-dark btn-lg w-100 rounded-pill fw-bold" onclick="executeExit()">メニューに戻る</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<div class="text-center mb-4">
+        <h3 id="game-status" class="fw-bold text-dark">対戦相手を待っています...</h3>
+        <button id="reset-btn" class="btn btn-warning px-4 fw-bold shadow-sm" style="display:none;" onclick="sendReset()">
+            もう一度遊ぶ
+        </button>
+    </div>
+
 </div>
 
+<script>
+    // パスをDjangoテンプレートタグで解決
+    function executeExit() {
+        window.location.href = "{% url 'dashboard' %}";
+    }
+
+    function confirmExit() {
+        // window.isGameOver は hb_socket.js で更新されるグローバル変数
+        if (window.isGameOver) {
+            executeExit();
+        } else {
+            const exitModal = new bootstrap.Modal(document.getElementById('exitModal'));
+            exitModal.show();
+        }
+    }
+</script>
+
 <style>
+    /* 演出用CSS (三目並べと統一) */
+    #game-start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.93); display: flex; justify-content: center; align-items: center; z-index: 10000; color: white; }
+    .animation-container { text-align: center; }
+    .anim-title { font-size: 4rem; font-weight: 900; margin-bottom: 1.5rem; animation: dropIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .player-vs { display: flex; align-items: center; justify-content: center; gap: 2rem; animation: fadeIn 1s 0.3s both; }
+    .vs-player span { font-size: 1.8rem; font-weight: bold; }
+    .vs-icon { font-size: 2rem; color: #ffc107; font-weight: bold; }
+    .role-announcement { margin-top: 2.5rem; font-size: 2.2rem; font-weight: 800; background: white; padding: 10px 40px; border-radius: 50px; display: inline-block; color: #333; animation: slideUpIn 0.6s 0.8s both; }
+    .fade-out { opacity: 0; transition: opacity 0.8s ease; }
+    @keyframes dropIn { 0% { transform: translateY(-100px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    @keyframes slideUpIn { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* ゲームUI */
     .tracking-widest { letter-spacing: 0.5rem; }
-    .keypad .btn { font-size: 1.25rem; font-weight: bold; border-radius: 10px; }
     .display-area { border: 2px dashed #dee2e6; min-height: 80px; display: flex; align-items: center; justify-content: center; }
-    
-    /* 履歴のリストスタイル */
     .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid #eee; }
     .badge-hit { background-color: #28a745; color: white; }
     .badge-blow { background-color: #ffc107; color: black; }
-
-    /* 開始演出オーバーレイ (三目並べと共通) */
-    #game-start-overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.9); display: flex; justify-content: center; align-items: center;
-        z-index: 10000; color: white; text-align: center;
-    }
 </style>
 
 <script src="{% static 'js/hb_socket.js' %}"></script>

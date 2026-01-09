@@ -364,90 +364,91 @@ class HitAndBlowConsumer(AsyncWebsocketConsumer):
 
         if not room_data:
             room_data = {
-                'phase': 'setup', # setup or playing
-                'player_x': self.user.username,
-                'player_o': None,
-                'secret_x': None,
-                'secret_o': None,
-                'current_turn': 'X',
-                'history': [],
-                'game_over': False
+                'phase': 'setup', 'player_x': self.user.username, 'player_o': None,
+                'secret_x': None, 'secret_o': None, 'current_turn': 'X',
+                'history': [], 'game_over': False
             }
         elif room_data['player_o'] is None and room_data['player_x'] != self.user.username:
             room_data['player_o'] = self.user.username
-            # 二人揃った通知
             await self.channel_layer.group_send(
                 self.room_group_name,
-                {'type': 'game_event', 'message': {'type': 'system', 'text': '対戦相手が揃いました。秘密の3桁を設定してください。'}}
+                {'type': 'game_start_event', 'player_x': room_data['player_x'], 'player_o': room_data['player_o']}
             )
 
         await database_sync_to_async(cache.set)(room_key, room_data, 3600)
         await self.broadcast_state(room_data)
+
+    async def disconnect(self, close_code):
+        room_key = f"hb_state_{self.room_name}"
+        room_data = await database_sync_to_async(cache.get)(room_key)
+
+        # ゲーム中かつ相手がいる状態で切断した場合、相手の不戦勝とする
+        if room_data and not room_data.get('game_over') and room_data.get('player_o'):
+            is_x = (self.user.username == room_data['player_x'])
+            winner = room_data['player_o'] if is_x else room_data['player_x']
+            
+            room_data['game_over'] = True
+            room_data['winner'] = winner
+            await database_sync_to_async(cache.set)(room_key, room_data, 3600)
+            
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'player_left_event',
+                    'left_user': self.user.username,
+                    'winner': winner
+                }
+            )
+
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive(self, text_data):
         data = json.loads(text_data)
         room_key = f"hb_state_{self.room_name}"
         room_data = await database_sync_to_async(cache.get)(room_key)
 
+        if not room_data or room_data['game_over']: return
+
         if data['type'] == 'set_secret':
-            # 秘密の数字を設定
             if self.user.username == room_data['player_x']:
                 room_data['secret_x'] = data['value']
             else:
                 room_data['secret_o'] = data['value']
-            
-            # 両方セット完了ならプレイ開始
             if room_data['secret_x'] and room_data['secret_o']:
                 room_data['phase'] = 'playing'
-            
             await database_sync_to_async(cache.set)(room_key, room_data, 3600)
             await self.broadcast_state(room_data)
 
         elif data['type'] == 'guess':
-            # 回答フェーズ
             hb = HitAndBlow()
-            guess = data['value']
-            # XがOの数字を当てる、あるいはその逆
             is_x = (self.user.username == room_data['player_x'])
             secret = room_data['secret_o'] if is_x else room_data['secret_x']
-            
-            result = hb.calculate_result(secret, guess)
-            history_item = {
-                'user': self.user.username,
-                'guess': "".join(map(str, guess)),
-                'hit': result['hit'],
-                'blow': result['blow']
-            }
-            room_data['history'].append(history_item)
-            
+            result = hb.calculate_result(secret, data['value'])
+            room_data['history'].append({'user': self.user.username, 'guess': "".join(map(str, data['value'])), 'hit': result['hit'], 'blow': result['blow']})
             if result['hit'] == 3:
                 room_data['game_over'] = True
                 room_data['winner'] = self.user.username
             else:
                 room_data['current_turn'] = 'O' if is_x else 'X'
-
             await database_sync_to_async(cache.set)(room_key, room_data, 3600)
             await self.broadcast_state(room_data)
 
     async def broadcast_state(self, room_data):
-        # 秘密の数字そのものは送らないようにコピーを作成
         clean_data = room_data.copy()
         clean_data['secret_x_set'] = room_data['secret_x'] is not None
         clean_data['secret_o_set'] = room_data['secret_o'] is not None
-        del clean_data['secret_x']
-        del clean_data['secret_o']
-        
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {'type': 'game_update', 'state': clean_data}
-        )
+        if 'secret_x' in clean_data: del clean_data['secret_x']
+        if 'secret_o' in clean_data: del clean_data['secret_o']
+        await self.channel_layer.group_send(self.room_group_name, {'type': 'game_update', 'state': clean_data})
 
     async def game_update(self, event):
         await self.send(text_data=json.dumps(event['state']))
 
-    async def game_event(self, event):
-        await self.send(text_data=json.dumps(event['message']))
+    async def game_start_event(self, event):
+        await self.send(text_data=json.dumps({'type': 'game_start', 'player_x': event['player_x'], 'player_o': event['player_o']}))
 
+    async def player_left_event(self, event):
+        await self.send(text_data=json.dumps({'type': 'player_left', 'left_user': event['left_user'], 'winner': event['winner']}))
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.cache import cache
@@ -521,43 +522,58 @@ class ECardConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        username = self.user.username
-        cache_key = f"ecard_state_{self.room_name}"
-        game_data = await database_sync_to_async(cache.get)(cache_key)
+        room_key = f"hb_state_{self.room_name}"
+        room_data = await database_sync_to_async(cache.get)(room_key)
 
-        if not game_data or game_data.get('game_over'): return
+        if not room_data: return
 
-        if data.get('type') == 'play_card':
-            card = data['card']
-            if card in game_data['hands'].get(username, []) and username not in game_data['current_battle']:
-                game_data['hands'][username].remove(card)
-                game_data['current_battle'][username] = card
-                await database_sync_to_async(cache.set)(cache_key, game_data, 3600)
+        # --- 追加: リセット処理 ---
+        if data.get('type') == 'reset':
+            room_data.update({
+                'phase': 'setup',
+                'secret_x': None,
+                'secret_o': None,
+                'current_turn': 'X',
+                'history': [],
+                'game_over': False,
+                'winner': None
+            })
+            await database_sync_to_async(cache.set)(room_key, room_data, 3600)
+            await self.broadcast_state(room_data)
+            return
 
-                if len(game_data['current_battle']) == 2:
-                    players = list(game_data['players'].keys())
-                    emp_u = next(p for p in players if game_data['players'][p] == 'emperor_side')
-                    slv_u = next(p for p in players if game_data['players'][p] == 'slave_side')
+        if room_data['game_over']: return
 
-                    msg, winner_side, is_over = ECard.judge(game_data['current_battle'][emp_u], game_data['current_battle'][slv_u])
-                    
-                    if not is_over and len(game_data['hands'][emp_u]) == 0:
-                        is_over, msg = True, "引き分け‥‥勝負つかず‥‥！"
+        if data['type'] == 'set_secret':
+            # (既存の secret 設定ロジック)
+            if self.user.username == room_data['player_x']:
+                room_data['secret_x'] = data['value']
+            else:
+                room_data['secret_o'] = data['value']
+            if room_data['secret_x'] and room_data['secret_o']:
+                room_data['phase'] = 'playing'
+            await database_sync_to_async(cache.set)(room_key, room_data, 3600)
+            await self.broadcast_state(room_data)
 
-                    if is_over:
-                        game_data['game_over'] = True
-                        if winner_side == 'emperor_side': game_data['points'][emp_u] += 1
-                        elif winner_side == 'slave_side': game_data['points'][slv_u] += 3
-                        
-                        for user, pt in game_data['points'].items():
-                            if pt >= 10: msg = f"【完結】{user}が10ポイント到達！"
-                    else:
-                        game_data['current_battle'] = {}
-                    
-                    await database_sync_to_async(cache.set)(cache_key, game_data, 3600)
-                    await self.channel_layer.group_send(self.room_group_name, {
-                        'type': 'round_end', 'message': msg, 'is_over': is_over, 'game_data': game_data
-                    })
+        elif data['type'] == 'guess':
+            # (既存の guess 判定ロジック)
+            hb = HitAndBlow()
+            is_x = (self.user.username == room_data['player_x'])
+            secret = room_data['secret_o'] if is_x else room_data['secret_x']
+            result = hb.calculate_result(secret, data['value'])
+            room_data['history'].append({
+                'user': self.user.username, 
+                'guess': "".join(map(str, data['value'])), 
+                'hit': result['hit'], 
+                'blow': result['blow']
+            })
+            if result['hit'] == 3:
+                room_data['game_over'] = True
+                room_data['winner'] = self.user.username
+            else:
+                room_data['current_turn'] = 'O' if is_x else 'X'
+            await database_sync_to_async(cache.set)(room_key, room_data, 3600)
+            await self.broadcast_state(room_data)
 
     async def round_end(self, event):
         username = self.user.username
